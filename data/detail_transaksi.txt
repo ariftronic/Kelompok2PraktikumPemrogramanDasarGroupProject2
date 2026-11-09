@@ -1,1 +1,5 @@
-
+T001|A001|dipinjam|-|-
+T001|A002|dipinjam|-|-
+T002|A003|dikembalikan|baik|2026-11-01
+T003|A004|dikembalikan|rusak ringan|2026-11-05
+T003|A005|dipinjam|-|-
