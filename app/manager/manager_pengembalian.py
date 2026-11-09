@@ -1,20 +1,3 @@
-"""Modul pengembalian alat (bagian Niken).
-
-Lokasi: app/manager/manager_pengembalian.py
-
-Asumsi antarmuka modul lain (sesuaikan dengan kesepakatan kelompok):
-- ManagerTransaksi (Faris) punya properti `data_transaksi` (dict: id -> Transaksi)
-  dan method `simpan()`.
-- ManagerAlat (Rara) punya properti `data_alat` (dict: kode -> Alat)
-  dan method `simpan()`.
-- Transaksi punya atribut: id_transaksi, nim, tgl_pinjam, batas_kembali,
-  status, daftar_detail (list DetailTransaksi).
-- DetailTransaksi punya atribut: id_transaksi, kode_alat, status, kondisi,
-  tgl_kembali.
-- Alat punya atribut: kode, nama, kategori, kondisi, status.
-- Tambahkan DETAIL_DIKEMBALIKAN = "dikembalikan" ke konstanta.py.
-"""
-
 from datetime import date
 
 from app.konstanta import (
