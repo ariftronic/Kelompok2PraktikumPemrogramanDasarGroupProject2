@@ -1,1 +1,5 @@
-
+M001|Andi Pratama|081234567890|aktif
+M002|Budi Santoso|081298765432|aktif
+M003|Citra Lestari|085712345678|aktif
+M004|Dewi Anggraini|087811223344|aktif
+M005|Eko Prasetyo|-|aktif

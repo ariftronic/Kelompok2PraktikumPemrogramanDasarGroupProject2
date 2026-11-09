@@ -1,1 +1,10 @@
-
+A001|Multimeter Digital|pengukuran|baik|dipinjam
+A002|Osiloskop|pengukuran|baik|dipinjam
+A003|Power Supply DC|sumber daya|baik|tersedia
+A004|Breadboard|prototyping|rusak ringan|tidak tersedia
+A005|Arduino Uno|mikrokontroler|baik|dipinjam
+A006|Solder Station|perkakas|baik|tersedia
+A007|Kabel Jumper|prototyping|baik|tersedia
+A008|Logic Analyzer|pengukuran|baik|tersedia
+A009|Function Generator|pengukuran|rusak berat|tidak tersedia
+A010|Sensor Ultrasonik HC-SR04|sensor|baik|tersedia
