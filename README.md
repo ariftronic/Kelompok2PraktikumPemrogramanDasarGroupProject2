@@ -11,7 +11,7 @@ Aplikasi berbasis Python (OOP) dengan penyimpanan permanen menggunakan text file
 | Anggota | Peran |
 |---|---|
 | Arif | Koordinator dan penyimpanan file (FileManager, menu utama, logger) |
-| Rara | Data mahasiswa dan alat |
+| Fatimah | Data mahasiswa dan alat |
 | Faris | Peminjaman (transaksi) |
 | Niken | Pengembalian dan QA |
 
@@ -96,7 +96,7 @@ yang kolomnya tidak sesuai dilewati dengan peringatan `[PERINGATAN]` sehingga pr
 | Anggota | Kontribusi |
 |---|---|
 | Arif | Repository dan struktur folder, `konstanta.py`, `file_manager.py`, `logger.py`, `menu.py`, `main.py`, README, pengujian FileManager/Logger, Dokumen Keputusan Desain |
-| Rara | `models/mahasiswa.py`, `models/alat.py`, `manager_mahasiswa.py`, `manager_alat.py`, `validasi.py`, UML final, data sampel |
+| Fatimah | `models/mahasiswa.py`, `models/alat.py`, `manager_mahasiswa.py`, `manager_alat.py`, `validasi.py`, UML final, data sampel |
 | Faris | `models/transaksi.py`, `manager_transaksi.py`, slide presentasi |
 | Niken | `manager_pengembalian.py`, pengujian 9 skenario, dokumen refleksi |
 
