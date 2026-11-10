@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from app import validasi
 from app.file_manager import FileManagerError
-from app.konstanta import FILE_ALAT, FILE_TRANSAKSI, FILE_DETAIL_TRANSAKSI, FORMAT_TANGGAL, KONDISI_BAIK, MAKS_HARI_PINJAM, MAKS_TRANSAKSI_AKTIF, STATUS_TERSEDIA, STATUS_DIPINJAM, STATUS_TIDAK_TERSEDIA
+from app.konstanta import FILE_ALAT, FILE_MAHASISWA, FILE_TRANSAKSI, FILE_DETAIL_TRANSAKSI, FORMAT_TANGGAL, KONDISI_BAIK, MAKS_HARI_PINJAM, MAKS_TRANSAKSI_AKTIF, MHS_AKTIF, MHS_TIDAK_AKTIF, STATUS_TERSEDIA, STATUS_DIPINJAM, STATUS_TIDAK_TERSEDIA
 from app.models.transaksi import Transaksi, DetailTransaksi
 
 class ManagerTransaksi:
@@ -18,12 +18,10 @@ class ManagerTransaksi:
         return validasi.rapikan(teks).upper()
 
     def _cari_mahasiswa(self, nim):
-        nim = self._kunci(nim)
-        return next((m for m in self.manager_mahasiswa.semua() if m.nim == nim), None)
+        return self.manager_mahasiswa.cari_berdasarkan_nim(nim)
 
     def _cari_alat(self, kode):
-        kode = self._kunci(kode)
-        return next((a for a in self.manager_alat.semua() if a.kode == kode), None)
+        return self.manager_alat.cari_berdasarkan_kode(kode)
 
     def _jumlah_aktif(self, nim):
         nim = self._kunci(nim)
@@ -79,30 +77,38 @@ class ManagerTransaksi:
         for alat in self.manager_alat.semua():
             if alat.kode in sedang_dipinjam:
                 seharusnya = STATUS_DIPINJAM
-            elif alat.status == STATUS_DIPINJAM:
-                seharusnya = STATUS_TERSEDIA if alat.kondisi == KONDISI_BAIK else STATUS_TIDAK_TERSEDIA
             else:
-                continue
+                seharusnya = STATUS_TERSEDIA if alat.kondisi == KONDISI_BAIK else STATUS_TIDAK_TERSEDIA
             if alat.status != seharusnya:
                 self.file_manager.catat_peringatan(FILE_ALAT, "status alat %s diperbaiki dari '%s' menjadi '%s' mengikuti transaksi" % (alat.kode, alat.status, seharusnya))
                 alat.status = seharusnya
+        nim_aktif = {t.nim for t in self.data_transaksi.values() if t.masih_aktif()}
+        for mahasiswa in self.manager_mahasiswa.semua():
+            seharusnya = MHS_AKTIF if mahasiswa.nim in nim_aktif else MHS_TIDAK_AKTIF
+            if mahasiswa.status_aktif != seharusnya:
+                self.file_manager.catat_peringatan(FILE_MAHASISWA, "status mahasiswa %s diperbaiki dari '%s' menjadi '%s' mengikuti transaksi" % (mahasiswa.nim, mahasiswa.status_aktif, seharusnya))
+                mahasiswa.status_aktif = seharusnya
 
     def simpan(self):
         daftar = list(self.data_transaksi.values())
         self.file_manager.tulis_baris(FILE_TRANSAKSI, [t.ke_baris() for t in daftar])
         self.file_manager.tulis_baris(FILE_DETAIL_TRANSAKSI, [baris for t in daftar for baris in t.baris_detail()])
 
-    def simpan_semua(self):
+    def simpan_semua(self, simpan_mahasiswa=False):
         try:
             self.manager_alat.simpan()
+            if simpan_mahasiswa:
+                self.manager_mahasiswa.simpan()
             self.simpan()
         except FileManagerError:
             self.manager_alat.muat()
+            self.manager_mahasiswa.muat()
             self.muat()
-            try:
-                self.manager_alat.simpan()
-            except FileManagerError:
-                pass
+            for manager in (self.manager_alat, self.manager_mahasiswa):
+                try:
+                    manager.simpan()
+                except FileManagerError:
+                    pass
             raise
 
     def buat(self, nim, daftar_kode_alat):
@@ -131,7 +137,8 @@ class ManagerTransaksi:
             transaksi.daftar_detail.append(DetailTransaksi(transaksi.id_transaksi, alat.kode))
             alat.status = STATUS_DIPINJAM
         self.data_transaksi[transaksi.id_transaksi] = transaksi
-        self.simpan_semua()
+        status_berubah = self.perbarui_status_mahasiswa(nim)
+        self.simpan_semua(simpan_mahasiswa=status_berubah)
         self.logger.catat('Transaksi %s dibuat oleh %s (%s)' % (transaksi.id_transaksi, nim, ', '.join(daftar_kode_alat)))
         return transaksi
 
@@ -155,6 +162,23 @@ class ManagerTransaksi:
 
     def punya_transaksi_aktif(self, nim):
         return self._jumlah_aktif(nim) > 0
+
+    def perbarui_status_mahasiswa(self, nim):
+        mahasiswa = self._cari_mahasiswa(nim)
+        if mahasiswa is None:
+            return False
+        seharusnya = MHS_AKTIF if self.punya_transaksi_aktif(nim) else MHS_TIDAK_AKTIF
+        berubah = mahasiswa.status_aktif != seharusnya
+        mahasiswa.status_aktif = seharusnya
+        return berubah
+
+    def mahasiswa_punya_riwayat(self, nim):
+        nim = self._kunci(nim)
+        return any(t.nim == nim for t in self.data_transaksi.values())
+
+    def alat_punya_riwayat(self, kode):
+        kode = self._kunci(kode)
+        return any(d.kode_alat == kode for t in self.data_transaksi.values() for d in t.daftar_detail)
 
     def alat_dalam_transaksi_aktif(self, kode):
         kode = self._kunci(kode)

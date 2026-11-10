@@ -1,9 +1,9 @@
 from datetime import datetime
-from app.konstanta import NILAI_KOSONG, FORMAT_TANGGAL, DAFTAR_KONDISI, DETAIL_DIPINJAM, DETAIL_DIKEMBALIKAN, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI
+from app.konstanta import NILAI_KOSONG, FORMAT_TANGGAL, DAFTAR_KONDISI, DETAIL_DIPINJAM, DETAIL_DIKEMBALIKAN, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI, MAKS_HARI_PINJAM
 
 def _periksa_tanggal(nilai, nama_kolom):
     try:
-        datetime.strptime(nilai, FORMAT_TANGGAL)
+        return datetime.strptime(nilai, FORMAT_TANGGAL).date()
     except ValueError:
         raise ValueError("%s harus berformat YYYY-MM-DD: '%s'" % (nama_kolom, nilai))
 
@@ -61,8 +61,10 @@ class Transaksi:
         _, _, tgl_pinjam, batas_kembali, status = kolom
         if status not in (TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI):
             raise ValueError("status transaksi tidak dikenal: '%s'" % status)
-        _periksa_tanggal(tgl_pinjam, 'tgl_pinjam')
-        _periksa_tanggal(batas_kembali, 'batas_kembali')
+        pinjam = _periksa_tanggal(tgl_pinjam, 'tgl_pinjam')
+        batas = _periksa_tanggal(batas_kembali, 'batas_kembali')
+        if not 0 <= (batas - pinjam).days <= MAKS_HARI_PINJAM:
+            raise ValueError('batas_kembali harus 0 sampai %d hari setelah tgl_pinjam (%s sampai %s)' % (MAKS_HARI_PINJAM, tgl_pinjam, batas_kembali))
         return cls(*kolom)
 
     def ke_baris(self):

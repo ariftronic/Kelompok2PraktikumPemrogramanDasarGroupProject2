@@ -1,12 +1,11 @@
-import importlib
 from app.file_manager import FileManager, FileManagerError
 from app.logger import Logger
+from app.manager.manager_alat import ManagerAlat
+from app.manager.manager_mahasiswa import ManagerMahasiswa
+from app.manager.manager_pengembalian import ManagerPengembalian
+from app.manager.manager_transaksi import ManagerTransaksi
 from app.konstanta import PEMISAH, KONDISI_BAIK, KONDISI_RUSAK_RINGAN, KONDISI_RUSAK_BERAT
 LEBAR = 60
-LOKASI_MANAGER = {'alat': ('app.manager.manager_alat', 'ManagerAlat'), 'mahasiswa': ('app.manager.manager_mahasiswa', 'ManagerMahasiswa'), 'transaksi': ('app.manager.manager_transaksi', 'ManagerTransaksi'), 'pengembalian': ('app.manager.manager_pengembalian', 'ManagerPengembalian')}
-
-class ModulBelumTersedia(Exception):
-    pass
 
 def baca_input(pesan, boleh_kosong=False):
     while True:
@@ -69,69 +68,37 @@ class AplikasiPeminjaman:
         self.logger = Logger(self.file_manager)
         self.manager = {}
 
-    def _buat(self, kunci, *argumen):
-        nama_modul, nama_class = LOKASI_MANAGER[kunci]
-        try:
-            kelas = getattr(importlib.import_module(nama_modul), nama_class)
-        except (ImportError, AttributeError):
-            kelas = None
-        if kelas is None or any((a is None for a in argumen)):
-            print('[INFO] %s belum tersedia, menu terkait dinonaktifkan sementara.' % nama_class)
-            self.manager[kunci] = None
-            return None
-        try:
-            self.manager[kunci] = kelas(*argumen)
-        except TypeError as e:
-            print('[PERINGATAN] %s tidak dapat dibuat (cek kontrak konstruktor): %s' % (nama_class, e))
-            self.manager[kunci] = None
-        return self.manager[kunci]
-
-    @staticmethod
-    def _panggil_jika_ada(objek, nama_method):
-        method = getattr(objek, nama_method, None) if objek is not None else None
-        if callable(method):
-            method()
-
     def siapkan(self):
         try:
             self.file_manager.pastikan_semua_file()
             fm, lg = (self.file_manager, self.logger)
-            alat = self._buat('alat', fm, lg)
-            mahasiswa = self._buat('mahasiswa', fm, lg)
-            transaksi = self._buat('transaksi', fm, lg, mahasiswa, alat)
-            self._buat('pengembalian', fm, lg, transaksi, alat)
-            for m in (mahasiswa, alat):
-                if m is not None and transaksi is not None:
-                    self._panggil_jika_ada_dengan(m, 'sambungkan_transaksi', transaksi)
+            alat = ManagerAlat(fm, lg)
+            mahasiswa = ManagerMahasiswa(fm, lg)
+            transaksi = ManagerTransaksi(fm, lg, mahasiswa, alat)
+            pengembalian = ManagerPengembalian(fm, lg, transaksi, alat)
+            alat.sambungkan_transaksi(transaksi)
+            mahasiswa.sambungkan_transaksi(transaksi)
+            self.manager = {'alat': alat, 'mahasiswa': mahasiswa, 'transaksi': transaksi, 'pengembalian': pengembalian}
             for kunci in ('alat', 'mahasiswa', 'transaksi'):
-                self._panggil_jika_ada(self.manager.get(kunci), 'muat')
+                self.manager[kunci].muat()
         except FileManagerError as e:
             print('[ERROR FILE] %s' % e)
             print('Program tidak dapat dimulai karena data gagal dimuat.')
             return False
         return True
 
-    @staticmethod
-    def _panggil_jika_ada_dengan(objek, nama_method, argumen):
-        method = getattr(objek, nama_method, None)
-        if callable(method):
-            method(argumen)
-
     def _manager(self, kunci):
-        m = self.manager.get(kunci)
-        if m is None:
-            raise ModulBelumTersedia('%s belum diimplementasikan, fitur ini belum dapat dipakai.' % LOKASI_MANAGER[kunci][1])
-        return m
+        return self.manager[kunci]
 
     def _jalankan_aksi(self, aksi):
         try:
             aksi()
-        except ModulBelumTersedia as e:
-            print('[BELUM TERSEDIA] %s' % e)
         except ValueError as e:
             print('[DITOLAK] %s' % e)
         except FileManagerError as e:
             print('[ERROR FILE] %s' % e)
+        except EOFError:
+            raise
         except Exception as e:
             print('[ERROR] Terjadi kesalahan tak terduga (%s): %s' % (type(e).__name__, e))
 
@@ -166,7 +133,8 @@ class AplikasiPeminjaman:
         print('\nMenyimpan data...')
         for kunci in ('alat', 'mahasiswa', 'transaksi'):
             try:
-                self._panggil_jika_ada(self.manager.get(kunci), 'simpan')
+                if self.manager.get(kunci) is not None:
+                    self.manager[kunci].simpan()
             except FileManagerError as e:
                 print('[ERROR FILE] Data %s gagal disimpan: %s' % (kunci, e))
         self.logger.catat('Program ditutup')
@@ -179,7 +147,7 @@ class AplikasiPeminjaman:
         m = self._manager('mahasiswa')
         nim = baca_input('NIM    : ')
         nama = baca_input('Nama   : ')
-        no_hp = baca_input('No. HP : ')
+        no_hp = baca_input('No. HP (boleh dikosongkan) : ', boleh_kosong=True)
         cetak_berhasil('Mahasiswa berhasil ditambahkan.', m.tambah(nim, nama, no_hp))
 
     def edit_mahasiswa(self):
@@ -187,8 +155,8 @@ class AplikasiPeminjaman:
         nim = baca_input('NIM yang diedit : ')
         print('Kosongkan (Enter) bila tidak ingin mengubah.')
         nama = baca_input('Nama baru   : ', boleh_kosong=True)
-        no_hp = baca_input('No. HP baru : ', boleh_kosong=True)
-        if not nama and (not no_hp):
+        no_hp = baca_input("No. HP baru ('-' untuk mengosongkan) : ", boleh_kosong=True)
+        if not (nama or no_hp):
             print('Tidak ada perubahan.')
             return
         cetak_berhasil('Data mahasiswa diperbarui.', m.edit(nim, nama=nama or None, no_hp=no_hp or None))
@@ -217,9 +185,9 @@ class AplikasiPeminjaman:
         m = self._manager('alat')
         kode = baca_input('Kode alat : ')
         nama = baca_input('Nama alat : ')
-        daftar_kategori = getattr(m, 'daftar_kategori', None)
-        if callable(daftar_kategori) and daftar_kategori():
-            print('Kategori yang sudah ada: %s' % ', '.join(daftar_kategori()))
+        kategori_ada = m.daftar_kategori()
+        if kategori_ada:
+            print('Kategori yang sudah ada: %s' % ', '.join(kategori_ada))
             print('(ketik kategori baru bila belum ada)')
         kategori = baca_input('Kategori  : ')
         kondisi = baca_input('Kondisi (baik/rusak ringan/rusak berat) [%s] : ' % KONDISI_BAIK, boleh_kosong=True) or KONDISI_BAIK
@@ -296,6 +264,9 @@ class AplikasiPeminjaman:
             try:
                 hasil = p.kembalikan(id_transaksi, kode, kondisi)
                 cetak_berhasil('Alat %s dikembalikan (%s).' % (kode, kondisi), hasil)
+                terlambat = p.hari_terlambat(hasil)
+                if terlambat:
+                    print('     [PERINGATAN] Terlambat %d hari dari batas %s.' % (terlambat, hasil.batas_kembali))
             except ValueError as e:
                 print('[DITOLAK] %s: %s' % (kode, e))
 

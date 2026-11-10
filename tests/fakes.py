@@ -1,4 +1,4 @@
-from app.konstanta import FILE_ALAT, FILE_MAHASISWA, KONDISI_BAIK, MHS_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA
+from app.konstanta import FILE_ALAT, FILE_MAHASISWA, KONDISI_BAIK, MHS_TIDAK_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA
 
 class AlatTiruan:
 
@@ -17,7 +17,7 @@ class AlatTiruan:
 
 class MahasiswaTiruan:
 
-    def __init__(self, nim, nama='Mahasiswa', no_hp='0812', status_aktif=MHS_AKTIF):
+    def __init__(self, nim, nama='Mahasiswa', no_hp='0812', status_aktif=MHS_TIDAK_AKTIF):
         self.nim = nim
         self.nama = nama
         self.no_hp = no_hp
@@ -44,6 +44,10 @@ class ManagerAlatTiruan:
 
     def semua(self):
         return list(self.data)
+
+    def cari_berdasarkan_kode(self, kode):
+        kode = ' '.join(str(kode).split()).upper()
+        return next((a for a in self.data if a.kode == kode), None)
 
     def tambah(self, kode, nama, kategori, kondisi=KONDISI_BAIK):
         alat = AlatTiruan(kode, nama, kategori, kondisi)
@@ -75,6 +79,10 @@ class ManagerMahasiswaTiruan:
 
     def semua(self):
         return list(self.data)
+
+    def cari_berdasarkan_nim(self, nim):
+        nim = ' '.join(str(nim).split()).upper()
+        return next((m for m in self.data if m.nim == nim), None)
 
     def tambah(self, nim, nama, no_hp):
         mahasiswa = MahasiswaTiruan(nim, nama, no_hp)

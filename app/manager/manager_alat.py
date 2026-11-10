@@ -97,6 +97,8 @@ class ManagerAlat:
         aktif = self.manager_transaksi is not None and self.manager_transaksi.alat_dalam_transaksi_aktif(alat.kode)
         if aktif or alat.status == STATUS_DIPINJAM:
             raise ValueError('Alat %s sedang dipinjam (transaksi aktif), tidak dapat dihapus.' % alat.kode)
+        if self.manager_transaksi is not None and self.manager_transaksi.alat_punya_riwayat(alat.kode):
+            raise ValueError('Alat %s tercatat dalam riwayat transaksi, tidak dapat dihapus agar riwayat tetap utuh.' % alat.kode)
         del self._data_alat[alat.kode]
         self._simpan_atau_pulihkan()
         self.logger.catat('Alat %s dihapus' % alat.kode)

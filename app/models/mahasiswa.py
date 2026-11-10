@@ -3,10 +3,11 @@ from app.konstanta import MHS_AKTIF, MHS_TIDAK_AKTIF, NILAI_KOSONG
 
 class Mahasiswa:
 
-    def __init__(self, nim, nama, no_hp='', status_aktif=MHS_AKTIF):
+    def __init__(self, nim, nama, no_hp='', status_aktif=MHS_TIDAK_AKTIF):
         self.nim = nim
         self.nama = nama
         self.no_hp = no_hp
+        # 'aktif' selama mahasiswa punya transaksi aktif; diatur ManagerTransaksi, bukan diisi manual.
         self.status_aktif = status_aktif
 
     @classmethod
@@ -22,4 +23,4 @@ class Mahasiswa:
         return [self.nim, self.nama, self.no_hp or NILAI_KOSONG, self.status_aktif]
 
     def __str__(self):
-        return '%s | %s | HP: %s | %s' % (self.nim, self.nama, self.no_hp or NILAI_KOSONG, self.status_aktif)
+        return '%s | %s | HP: %s | peminjaman: %s' % (self.nim, self.nama, self.no_hp or NILAI_KOSONG, self.status_aktif)
