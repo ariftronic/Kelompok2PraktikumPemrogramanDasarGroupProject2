@@ -1,45 +1,30 @@
 import os
-
 DIR_PROYEK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIR_DATA = os.path.join(DIR_PROYEK, "data")
-
-FILE_MAHASISWA = "mahasiswa.txt"
-FILE_ALAT = "alat.txt"
-FILE_TRANSAKSI = "transaksi.txt"
-FILE_DETAIL_TRANSAKSI = "detail_transaksi.txt"
-FILE_LOG = "log.txt"
-
-PEMISAH = "|"
-NILAI_KOSONG = "-"
-FORMAT_TANGGAL = "%Y-%m-%d"
-FORMAT_WAKTU_LOG = "%Y-%m-%d %H:%M"
-
-KOLOM_FILE = {
-    FILE_MAHASISWA: ("nim", "nama", "no_hp", "status_aktif"),
-    FILE_ALAT: ("kode", "nama", "kategori", "kondisi", "status"),
-    FILE_TRANSAKSI: ("id", "nim", "tgl_pinjam", "batas_kembali", "status"),
-    FILE_DETAIL_TRANSAKSI: ("id", "kode", "status", "kondisi", "tgl_kembali"),
-}
+DIR_DATA = os.path.join(DIR_PROYEK, 'data')
+FILE_MAHASISWA = 'mahasiswa.txt'
+FILE_ALAT = 'alat.txt'
+FILE_TRANSAKSI = 'transaksi.txt'
+FILE_DETAIL_TRANSAKSI = 'detail_transaksi.txt'
+FILE_LOG = 'log.txt'
+PEMISAH = '|'
+NILAI_KOSONG = '-'
+FORMAT_TANGGAL = '%Y-%m-%d'
+FORMAT_WAKTU_LOG = '%Y-%m-%d %H:%M'
+KOLOM_FILE = {FILE_MAHASISWA: ('nim', 'nama', 'no_hp', 'status_aktif'), FILE_ALAT: ('kode', 'nama', 'kategori', 'kondisi', 'status'), FILE_TRANSAKSI: ('id', 'nim', 'tgl_pinjam', 'batas_kembali', 'status'), FILE_DETAIL_TRANSAKSI: ('id', 'kode', 'status', 'kondisi', 'tgl_kembali')}
 JUMLAH_KOLOM = {nama: len(kolom) for nama, kolom in KOLOM_FILE.items()}
-
-MHS_AKTIF = "aktif"
-MHS_TIDAK_AKTIF = "tidak aktif"
-
-STATUS_TERSEDIA = "tersedia"
-STATUS_DIPINJAM = "dipinjam"
-STATUS_TIDAK_TERSEDIA = "tidak tersedia"
-
-KONDISI_BAIK = "baik"
-KONDISI_RUSAK_RINGAN = "rusak ringan"
-KONDISI_RUSAK_BERAT = "rusak berat"
+MHS_AKTIF = 'aktif'
+MHS_TIDAK_AKTIF = 'tidak aktif'
+STATUS_TERSEDIA = 'tersedia'
+STATUS_DIPINJAM = 'dipinjam'
+STATUS_TIDAK_TERSEDIA = 'tidak tersedia'
+KONDISI_BAIK = 'baik'
+KONDISI_RUSAK_RINGAN = 'rusak ringan'
+KONDISI_RUSAK_BERAT = 'rusak berat'
 DAFTAR_KONDISI = (KONDISI_BAIK, KONDISI_RUSAK_RINGAN, KONDISI_RUSAK_BERAT)
-
-TRX_DIPINJAM = "dipinjam"
-TRX_SEBAGIAN = "sebagian dikembalikan"
-TRX_SELESAI = "selesai"
-
-DETAIL_DIPINJAM = "dipinjam"
-DETAIL_DIKEMBALIKAN = "dikembalikan"
-
+TRX_DIPINJAM = 'dipinjam'
+TRX_SEBAGIAN = 'sebagian dikembalikan'
+TRX_SELESAI = 'selesai'
+DETAIL_DIPINJAM = 'dipinjam'
+DETAIL_DIKEMBALIKAN = 'dikembalikan'
 MAKS_TRANSAKSI_AKTIF = 2
 MAKS_HARI_PINJAM = 7

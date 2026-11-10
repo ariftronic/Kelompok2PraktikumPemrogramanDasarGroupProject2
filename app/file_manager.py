@@ -1,16 +1,11 @@
 import os
-
-from app.konstanta import (
-    DIR_DATA, PEMISAH, NILAI_KOSONG, JUMLAH_KOLOM,
-    FILE_LOG,
-)
-
+from app.konstanta import DIR_DATA, PEMISAH, NILAI_KOSONG, JUMLAH_KOLOM, FILE_LOG
 
 class FileManagerError(Exception):
     pass
 
-
 class FileManager:
+
     def __init__(self, direktori=DIR_DATA):
         self.direktori = direktori
         self.daftar_peringatan = []
@@ -23,7 +18,7 @@ class FileManager:
         try:
             os.makedirs(self.direktori, exist_ok=True)
             if not os.path.exists(path):
-                with open(path, "a", encoding="utf-8"):
+                with open(path, 'a', encoding='utf-8'):
                     pass
         except OSError as e:
             raise FileManagerError("Tidak dapat menyiapkan file '%s': %s" % (nama_file, e))
@@ -34,7 +29,7 @@ class FileManager:
             self.pastikan_file(nama_file)
 
     def catat_peringatan(self, sumber, pesan):
-        teks = "[PERINGATAN] %s: %s" % (sumber, pesan)
+        teks = '[PERINGATAN] %s: %s' % (sumber, pesan)
         self.daftar_peringatan.append(teks)
         print(teks)
 
@@ -42,7 +37,7 @@ class FileManager:
         path = self.pastikan_file(nama_file)
         hasil = []
         try:
-            with open(path, "r", encoding="utf-8-sig") as f:
+            with open(path, 'r', encoding='utf-8-sig') as f:
                 for nomor, baris in enumerate(f, start=1):
                     teks = baris.strip()
                     if teks:
@@ -61,14 +56,10 @@ class FileManager:
         for nomor, teks in self._baca_mentah(nama_file):
             kolom = [k.strip() for k in teks.split(PEMISAH)]
             if jumlah_kolom is not None and len(kolom) != jumlah_kolom:
-                self.catat_peringatan(
-                    nama_file,
-                    "baris %d dilewati (ada %d kolom, seharusnya %d): %s"
-                    % (nomor, len(kolom), jumlah_kolom, teks))
+                self.catat_peringatan(nama_file, 'baris %d dilewati (ada %d kolom, seharusnya %d): %s' % (nomor, len(kolom), jumlah_kolom, teks))
                 continue
-            if "" in kolom:
-                self.catat_peringatan(
-                    nama_file, "baris %d dilewati (ada kolom kosong): %s" % (nomor, teks))
+            if '' in kolom:
+                self.catat_peringatan(nama_file, 'baris %d dilewati (ada kolom kosong): %s' % (nomor, teks))
                 continue
             hasil.append(kolom)
         return hasil
@@ -76,35 +67,33 @@ class FileManager:
     @staticmethod
     def periksa_nilai(nilai):
         teks = NILAI_KOSONG if nilai is None else str(nilai).strip()
-        if teks == "":
+        if teks == '':
             teks = NILAI_KOSONG
-        if PEMISAH in teks or "\n" in teks or "\r" in teks:
-            raise ValueError("Data tidak boleh mengandung karakter '%s' atau baris baru: %r"
-                             % (PEMISAH, teks))
+        if PEMISAH in teks or '\n' in teks or '\r' in teks:
+            raise ValueError("Data tidak boleh mengandung karakter '%s' atau baris baru: %r" % (PEMISAH, teks))
         return teks
 
     def _susun_baris(self, nama_file, baris):
         if isinstance(baris, str):
-            if "\n" in baris or "\r" in baris:
-                raise ValueError("Satu baris data tidak boleh mengandung baris baru.")
+            if '\n' in baris or '\r' in baris:
+                raise ValueError('Satu baris data tidak boleh mengandung baris baru.')
             nilai = baris.split(PEMISAH)
         else:
             nilai = list(baris)
         kolom = [self.periksa_nilai(v) for v in nilai]
         jumlah = JUMLAH_KOLOM.get(nama_file)
         if jumlah is not None and len(kolom) != jumlah:
-            raise ValueError("File %s memerlukan %d kolom, bukan %d: %s"
-                             % (nama_file, jumlah, len(kolom), kolom))
+            raise ValueError('File %s memerlukan %d kolom, bukan %d: %s' % (nama_file, jumlah, len(kolom), kolom))
         return PEMISAH.join(kolom)
 
     def tulis_baris(self, nama_file, daftar_baris):
         teks_baris = [self._susun_baris(nama_file, b) for b in daftar_baris]
         path = self.pastikan_file(nama_file)
-        path_sementara = path + ".tmp"
+        path_sementara = path + '.tmp'
         try:
-            with open(path_sementara, "w", encoding="utf-8", newline="\n") as f:
+            with open(path_sementara, 'w', encoding='utf-8', newline='\n') as f:
                 for teks in teks_baris:
-                    f.write(teks + "\n")
+                    f.write(teks + '\n')
             os.replace(path_sementara, path)
         except OSError as e:
             try:
@@ -116,9 +105,9 @@ class FileManager:
 
     def tambah_baris(self, nama_file, teks):
         path = self.pastikan_file(nama_file)
-        satu_baris = " ".join(str(teks).splitlines()).strip()
+        satu_baris = ' '.join(str(teks).splitlines()).strip()
         try:
-            with open(path, "a", encoding="utf-8", newline="\n") as f:
-                f.write(satu_baris + "\n")
+            with open(path, 'a', encoding='utf-8', newline='\n') as f:
+                f.write(satu_baris + '\n')
         except OSError as e:
             raise FileManagerError("Tidak dapat menambah baris ke '%s': %s" % (nama_file, e))
