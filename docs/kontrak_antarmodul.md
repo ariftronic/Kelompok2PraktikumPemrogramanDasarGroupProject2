@@ -17,6 +17,8 @@ Faris, dan Niken dapat bekerja paralel. Bila disepakati lain saat diskusi, ubah 
 - Gunakan konstanta dari `konstanta.py` untuk status, kondisi, pemisah, dan aturan bisnis. Jangan menulis string literalnya.
 - Saat `muat()`: lewati dan peringatkan data ganda (NIM, kode alat, ID transaksi) serta rujukan yang tidak ada
   (NIM/kode alat pada transaksi) memakai `file_manager.catat_peringatan(nama_file, pesan)` (Aturan 8).
+- Status alat (`status`) dan status aktif mahasiswa (`status_aktif`) adalah data turunan dari transaksi: diatur oleh
+  `ManagerTransaksi` dan `ManagerPengembalian`, serta diperbaiki dengan peringatan saat `ManagerTransaksi.muat()`.
 - Hasil log: setiap operasi berhasil memanggil `logger.catat(pesan)`. Pesan yang disarankan:
   `Mahasiswa M001 ditambahkan`, `Alat A001 ditambahkan`, `Transaksi T001 dibuat`,
   `Alat A001 dikembalikan dalam kondisi baik`, `Mahasiswa M001 dihapus`.
@@ -41,8 +43,9 @@ mahasiswa.sambungkan_transaksi(transaksi)  # untuk Aturan 6
 | Method | Keterangan |
 |---|---|
 | `tambah(nim, nama, no_hp)` | mengembalikan objek `Mahasiswa`; tolak NIM ganda |
-| `edit(nim, nama=None, no_hp=None)` | `None` berarti tidak diubah; mengembalikan objek |
-| `hapus(nim)` | tolak bila `transaksi.punya_transaksi_aktif(nim)` (Aturan 6) |
+| `edit(nim, nama=None, no_hp=None)` | `None` berarti tidak diubah; `no_hp='-'` mengosongkan nomor; `status_aktif` tidak dapat diedit karena diatur otomatis; mengembalikan objek |
+| `hapus(nim)` | tolak bila `transaksi.punya_transaksi_aktif(nim)` (Aturan 6) atau `transaksi.mahasiswa_punya_riwayat(nim)` (menjaga Aturan 8) |
+| `cari_berdasarkan_nim(nim)` | objek `Mahasiswa` atau `None`, O(1) |
 | `cari(kata_kunci)` | list `Mahasiswa` (NIM atau nama) |
 | `semua()` | list `Mahasiswa` |
 | `sambungkan_transaksi(manager_transaksi)` | menyimpan referensi |
@@ -53,7 +56,8 @@ mahasiswa.sambungkan_transaksi(transaksi)  # untuk Aturan 6
 |---|---|
 | `tambah(kode, nama, kategori, kondisi="baik")` | kategori baru otomatis diterima (tanpa mengubah struktur utama); tolak kode ganda |
 | `edit(kode, nama=None, kategori=None, kondisi=None)` | mengembalikan objek |
-| `hapus(kode)` | tolak bila `transaksi.alat_dalam_transaksi_aktif(kode)` (Aturan 6) |
+| `hapus(kode)` | tolak bila `transaksi.alat_dalam_transaksi_aktif(kode)` (Aturan 6) atau `transaksi.alat_punya_riwayat(kode)` (menjaga Aturan 8) |
+| `cari_berdasarkan_kode(kode)` | objek `Alat` atau `None`, O(1) |
 | `cari(kata_kunci)` | Tantangan A: cocok dengan kode, sebagian nama, atau kategori |
 | `semua()`, `tersedia()`, `dipinjam()`, `rusak()` | list `Alat` |
 | `daftar_kategori()` | list nama kategori yang sudah ada (opsional, dipakai menu bila ada) |
@@ -63,20 +67,25 @@ mahasiswa.sambungkan_transaksi(transaksi)  # untuk Aturan 6
 
 | Method | Keterangan |
 |---|---|
-| `buat(nim, daftar_kode_alat)` | mengembalikan `Transaksi`; terapkan Aturan 1, 2, 3 dan batas 7 hari; ubah status alat menjadi `dipinjam`; simpan alat dan transaksi |
+| `buat(nim, daftar_kode_alat)` | mengembalikan `Transaksi`; terapkan Aturan 1, 2, 3 dan batas 7 hari; ubah status alat menjadi `dipinjam` dan `status_aktif` mahasiswa menjadi `aktif`; simpan alat, mahasiswa (bila statusnya berubah), dan transaksi |
 | `semua()` | list `Transaksi` |
 | `cari_berdasarkan_mahasiswa(nim)` | list `Transaksi` (disarankan yang masih aktif) |
 | `riwayat_mahasiswa(nim)` | list `Transaksi` termasuk yang sudah selesai |
 | `punya_transaksi_aktif(nim)` | bool, untuk Aturan 6 |
-| `alat_dalam_transaksi_aktif(kode)` | bool, untuk Aturan 6 |
-| `muat()`, `simpan()` | menangani `transaksi.txt` dan `detail_transaksi.txt` |
+| `alat_dalam_transaksi_aktif(kode)` | bool, untuk Aturan 6 (hanya alat yang belum dikembalikan) |
+| `mahasiswa_punya_riwayat(nim)` | bool, ada transaksi apa pun (aktif atau selesai) milik NIM tersebut |
+| `alat_punya_riwayat(kode)` | bool, alat tercatat pada detail transaksi mana pun |
+| `perbarui_status_mahasiswa(nim)` | `status_aktif` mahasiswa menjadi `aktif` bila punya transaksi aktif, selain itu `tidak aktif`; mengembalikan `True` bila berubah |
+| `muat()`, `simpan()` | menangani `transaksi.txt` dan `detail_transaksi.txt`; `muat()` juga menyelaraskan status transaksi, alat, dan mahasiswa |
+| `simpan_semua(simpan_mahasiswa=False)` | menyimpan alat, mahasiswa (bila diminta), transaksi, dan detail; bila gagal, memuat ulang semuanya dari file lalu melempar ulang |
 
 ### ManagerPengembalian (Niken)
 
 | Method | Keterangan |
 |---|---|
 | `daftar_belum_kembali(id_transaksi)` | list alat/detail yang masih `dipinjam` pada transaksi tersebut |
-| `kembalikan(id_transaksi, kode_alat, kondisi)` | satu alat per panggilan; kondisi salah satu `DAFTAR_KONDISI`; atur stok (Aturan 5), status transaksi (Aturan 4), simpan; mengembalikan `Transaksi` |
+| `hari_terlambat(transaksi, tanggal=None)` | jumlah hari melewati `batas_kembali` (0 bila tepat waktu) |
+| `kembalikan(id_transaksi, kode_alat, kondisi)` | satu alat per panggilan; keterlambatan dicatat di log; `status_aktif` mahasiswa diperbarui; bila penyimpanan gagal, kondisi alat dipulihkan; kondisi salah satu `DAFTAR_KONDISI`; atur stok (Aturan 5), status transaksi (Aturan 4), simpan; mengembalikan `Transaksi` |
 
 ## 4. Fitur yang ditangani menu sendiri
 

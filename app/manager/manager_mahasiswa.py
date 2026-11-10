@@ -83,6 +83,8 @@ class ManagerMahasiswa:
         mhs = self.ambil(nim)
         if self.manager_transaksi is not None and self.manager_transaksi.punya_transaksi_aktif(mhs.nim):
             raise ValueError('Mahasiswa %s masih memiliki transaksi aktif, tidak dapat dihapus.' % mhs.nim)
+        if self.manager_transaksi is not None and self.manager_transaksi.mahasiswa_punya_riwayat(mhs.nim):
+            raise ValueError('Mahasiswa %s tercatat dalam riwayat transaksi, tidak dapat dihapus agar riwayat tetap utuh.' % mhs.nim)
         del self._data_mahasiswa[mhs.nim]
         self._simpan_atau_pulihkan()
         self.logger.catat('Mahasiswa %s dihapus' % mhs.nim)

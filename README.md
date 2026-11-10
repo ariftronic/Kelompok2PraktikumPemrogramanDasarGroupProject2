@@ -3,8 +3,8 @@
 Proyek II Praktikum Pemrograman Dasar, Semester 3 Pendidikan Teknik Informatika dan Komputer (PTIK), Universitas Sebelas Maret.
 Aplikasi berbasis Python (OOP) dengan penyimpanan permanen menggunakan text file (`.txt`).
 
-> Status: dalam pengembangan (periode pengerjaan 5 sampai 12 November 2026).
-> Bagian bertanda *(format awal)* akan disesuaikan dengan UML dan format file final hasil diskusi kelompok.
+> Status: implementasi selesai, memasuki tahap pengujian dan code review (periode pengerjaan 5 sampai 12 November 2026).
+> Format file di bawah sesuai dengan implementasi dan UML final (`docs/final/UML_Class_Diagram_Final.drawio`).
 
 ## Anggota Kelompok (Kelompok 2)
 
@@ -23,7 +23,9 @@ kondisinya, dan menjaga seluruh data tetap tersimpan setelah program ditutup.
 
 Aturan bisnis utama: alat yang tidak tersedia tidak dapat dipinjam, maksimal dua transaksi aktif per mahasiswa,
 batas pengembalian maksimal 7 hari, alat yang dikembalikan dalam kondisi rusak ringan atau rusak berat tidak
-kembali menjadi tersedia, serta mahasiswa/alat yang masih ada di transaksi aktif tidak dapat dihapus.
+kembali menjadi tersedia, serta mahasiswa/alat yang masih ada di transaksi aktif atau tercatat dalam riwayat
+transaksi tidak dapat dihapus. Status aktif peminjaman mahasiswa diatur otomatis oleh program (`aktif` selama
+mahasiswa memiliki transaksi aktif), dan keterlambatan pengembalian dicatat di log.
 
 Alur data: saat program mulai, semua file dibaca dan dimuat ke `list`/`dict`; setiap perubahan (tambah, edit,
 hapus, transaksi, pengembalian) langsung ditulis kembali ke file; operasi yang ditolak aturan bisnis tidak
@@ -37,13 +39,16 @@ Kebutuhan: Python 3.8 atau lebih baru, tanpa library tambahan.
 python main.py
 ```
 
-Pengujian otomatis untuk FileManager dan Logger:
+Pengujian otomatis (FileManager, Logger, manager, transaksi, menu dengan input berskrip, dan skenario integrasi):
 
 ```
 python -m unittest -v
 ```
 
 Folder `data/` dan file di dalamnya dibuat otomatis bila belum ada.
+
+Untuk mencoba dengan data contoh (5 mahasiswa, 10 alat, 3 transaksi), salin semua file `.txt` dari `data_sampel/`
+ke `data/` sebelum menjalankan program. File yang sudah ada di `data/` akan tertimpa.
 
 ## Struktur Program
 
@@ -58,13 +63,14 @@ app/
   models/                     Mahasiswa, Alat, Transaksi, DetailTransaksi
   manager/                    manager_mahasiswa, manager_alat, manager_transaksi, manager_pengembalian
 data/                         file penyimpanan (.txt)
+data_sampel/                  contoh data (5 mahasiswa, 10 alat, 3 transaksi) untuk mencoba program
 docs/                         UML, keputusan desain, pengujian, code review, refleksi
 tests/                        pengujian otomatis (unittest)
 ```
 
 Pembagian tanggung jawab antarmodul dijelaskan di `docs/kontrak_antarmodul.md`.
 
-## Format Text File *(format awal)*
+## Format Text File
 
 Satu baris mewakili satu data, kolom dipisahkan tanda `|`, tanpa baris judul. Kolom tanpa nilai ditulis `-`.
 Tanggal berformat `YYYY-MM-DD`. Karakter `|` dan baris baru tidak boleh ada di dalam nilai data.
@@ -78,6 +84,8 @@ Tanggal berformat `YYYY-MM-DD`. Karakter `|` dan baris baru tidak boleh ada di d
 | `log.txt` | teks bebas berstempel waktu | `[2026-11-10 10:15] Mahasiswa M001 ditambahkan` |
 
 Nilai yang diizinkan:
+- `batas_kembali`: 0 sampai 7 hari setelah `tgl_pinjam` (baris di luar rentang dilewati dengan peringatan)
+- `status_aktif` mahasiswa: `aktif` bila punya transaksi aktif, selain itu `tidak aktif` (diatur otomatis; nilai yang tidak sesuai diperbaiki saat dimuat dengan peringatan)
 - kondisi alat: `baik`, `rusak ringan`, `rusak berat`
 - status alat: `tersedia`, `dipinjam`, `tidak tersedia`
 - status transaksi: `dipinjam`, `sebagian dikembalikan`, `selesai`

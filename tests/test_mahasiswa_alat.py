@@ -21,6 +21,12 @@ class TransaksiPalsu:
     def alat_dalam_transaksi_aktif(self, kode):
         return kode in self.kode_aktif
 
+    def mahasiswa_punya_riwayat(self, nim):
+        return False
+
+    def alat_punya_riwayat(self, kode):
+        return False
+
 class DasarUji(unittest.TestCase):
 
     def setUp(self):
@@ -52,12 +58,12 @@ class UjiMahasiswa(DasarUji):
     def test_tambah_tersimpan_dan_tercatat_log(self):
         m = self.mhs.tambah('m001', '  Andi   Pratama ', '081234567890')
         self.assertEqual((m.nim, m.nama), ('M001', 'Andi Pratama'))
-        self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi Pratama|081234567890|aktif\n')
+        self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi Pratama|081234567890|tidak aktif\n')
         self.assertIn('Mahasiswa M001 ditambahkan', self.isi(FILE_LOG))
 
     def test_no_hp_kosong_ditulis_strip_dan_dibaca_kembali_kosong(self):
         self.mhs.tambah('M001', 'Andi', '')
-        self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi|-|aktif\n')
+        self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi|-|tidak aktif\n')
         baru = ManagerMahasiswa(self.fm, self.logger)
         baru.muat()
         self.assertEqual(baru.ambil('M001').no_hp, '')

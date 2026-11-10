@@ -1,5 +1,3 @@
-# Pengujian
-
 **Proyek II Praktikum Pemrograman Dasar**
 Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
@@ -247,3 +245,83 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 - Jumlah skenario lulus: ... dari 9
 - Jumlah skenario gagal: ...
 - Catatan umum: ........
+
+---
+
+## 4. Hasil Pengujian Otomatis (Unit & Integration Tests)
+
+Seluruh pengujian otomatis dijalankan dengan `python -m unittest -v` dari folder proyek. Setiap tes memakai
+folder sementara sehingga folder `data/` tidak berubah.
+
+## Skenario wajib
+
+| No | Skenario | Tes otomatis (`tests/test_integrasi.py`) | Hasil yang diharapkan |
+|---|---|---|---|
+| 1 | Tambah mahasiswa dan alat | `test_skenario_1_data_tercatat_di_file` | Data muncul di `mahasiswa.txt` dan `alat.txt` |
+| 2 | Pinjam beberapa alat dalam satu transaksi | `test_skenario_2_status_alat_berubah_di_program_dan_file` | Status alat `dipinjam` di memori dan file |
+| 3 | Pinjam alat yang tidak tersedia | `test_skenario_3_alat_tidak_tersedia_ditolak_file_tidak_berubah` | Ditolak, isi semua file tetap |
+| 4 | Pengembalian sebagian | `test_skenario_4_pengembalian_sebagian` | Transaksi `sebagian dikembalikan`, alat lain tetap `dipinjam` |
+| 5 | Kembali dalam kondisi rusak | `test_skenario_5_alat_rusak_tidak_kembali_tersedia` | Status `tidak tersedia` |
+| 6 | Hapus mahasiswa/alat bertransaksi aktif | `test_skenario_6_hapus_mahasiswa_dan_alat_aktif_ditolak` | Ditolak, file tetap |
+| 7 | Tutup dan jalankan ulang | `test_skenario_7_*` | Data dan status sama, tanpa duplikasi |
+| 8 | File dihapus atau dikosongkan | `test_skenario_8_file_dihapus_atau_dikosongkan_tidak_error` | File dibuat ulang tanpa error |
+| 9 | Baris berformat salah | `test_skenario_9_baris_salah_format_dilewati_dan_program_tetap_dapat_dipakai` | Baris dilewati dengan `[PERINGATAN]` |
+
+## Pengujian tambahan (hasil analisis kode)
+
+| Masalah yang ditemukan | Tes (`UjiPerbaikanAnalisis`) |
+|---|---|
+| Penghapusan alat/mahasiswa merusak riwayat transaksi setelah dimuat ulang | `test_alat_dan_mahasiswa_dengan_riwayat_tidak_boleh_dihapus`, `test_alat_sudah_kembali_pada_transaksi_aktif_tidak_boleh_dihapus` |
+| Kondisi alat tidak pulih saat penulisan file transaksi gagal | `test_gagal_simpan_pengembalian_memulihkan_kondisi_alat` |
+| Status aktif peminjaman mahasiswa tidak pernah diperbarui | `test_status_aktif_mahasiswa_mengikuti_transaksi_aktif`, `test_status_aktif_mahasiswa_bertahan_setelah_dijalankan_ulang` |
+| Status mahasiswa di file salah; mahasiswa `tidak aktif` tidak boleh terblokir saat meminjam | `test_status_aktif_yang_salah_di_file_diperbaiki_dan_tidak_memblokir_peminjaman` |
+| Status mahasiswa tidak pulih saat penyimpanan gagal | `test_gagal_menyimpan_transaksi_memulihkan_status_aktif_mahasiswa`, `test_gagal_menyimpan_pengembalian_memulihkan_status_aktif_mahasiswa` |
+| Kondisi dan status alat dari file bertentangan | `test_status_alat_tidak_konsisten_dengan_kondisi_diperbaiki` |
+| Keterlambatan tidak tercatat | `test_keterlambatan_dihitung_dan_dicatat_di_log` |
+| No. HP tidak dapat dikosongkan lewat edit | `test_edit_mahasiswa_dapat_mengosongkan_no_hp` |
+| `batas_kembali` dari file tidak dibatasi 7 hari | `test_batas_kembali_harus_dalam_rentang_tujuh_hari` |
+
+## Pengujian menu (`tests/test_menu.py`)
+
+Menu diuji dengan input berskrip (`input()` diganti urutan jawaban) pada folder sementara, sehingga seluruh
+alur yang dilihat pengguna (pesan `[OK]`, `[DITOLAK]`, `[PERINGATAN]`, tampilan daftar) ikut diperiksa.
+
+| Tes | Yang diperiksa |
+|---|---|
+| `test_alur_lengkap_dari_data_sampai_pengembalian` | tambah mahasiswa/alat, pinjam, kembali sebagian, tampil daftar, isi semua file, log |
+| `test_penolakan_aturan_bisnis_tampil_di_layar_dan_file_tidak_berubah` | 4 penolakan tampil sebagai `[DITOLAK]`, konfirmasi `n` membatalkan, file tetap |
+| `test_edit_mahasiswa_mengosongkan_hp_dan_status_mengikuti_peminjaman` | edit no. HP dengan `-`, mahasiswa `tidak aktif` tetap dapat meminjam, status menjadi `aktif` di file |
+| `test_input_berhenti_di_tengah_isian_tetap_menyimpan_dan_keluar` | `EOFError` (Ctrl+Z/Ctrl+D) tidak menampilkan `[ERROR]` dan data tetap disimpan |
+| `test_data_tetap_ada_setelah_program_dijalankan_ulang` | skenario 7 lewat menu, status mahasiswa di file, tanpa peringatan dan file tidak berubah |
+| `test_pengembalian_terlambat_menampilkan_peringatan_dan_log` | peringatan terlambat di layar dan `TERLAMBAT` di log |
+| `UjiSiapkan` | file dibuat otomatis, manager tersambung, baris rusak dilewati, kegagalan file menghentikan program |
+
+## Verifikasi menjalankan `python main.py`
+
+Selain tes unit, program dijalankan langsung (`python main.py` dengan input dari stdin) pada salinan sementara
+proyek, sehingga `data/` asli tidak berubah. Hasil yang diamati:
+
+| Kasus | Hasil |
+|---|---|
+| Tanpa folder `data/` | kelima file `.txt` dibuat otomatis; kode keluar 0; tanpa pesan error |
+| Dijalankan ulang setelah menambah mahasiswa, alat, dan transaksi | transaksi dan alat yang dipinjam tampil kembali; isi file sama |
+| Memuat `data_sampel/` | 0 peringatan; M001 dan M003 `aktif`, M002, M004, M005 `tidak aktif` |
+| Skenario 9: satu baris berkolom 2 ditambahkan ke `mahasiswa.txt` | 1 `[PERINGATAN]` berisi nomor baris; program tetap berjalan |
+| Skenario 8: `alat.txt` dihapus | program berjalan, file dibuat ulang, kode keluar 0 |
+| M002 (`tidak aktif`) meminjam A006 dari data sampel, lalu mengembalikannya | `[OK]`; M002 menjadi `aktif` di file, lalu kembali `tidak aktif`; transaksi T004 `selesai` |
+
+Pemeriksaan ini dijalankan sekali saat verifikasi dan skripnya tidak disimpan di repository. Alur serupa dicakup
+`tests/test_menu.py` dan `tests/test_integrasi.py`.
+
+## Kompatibilitas Python
+
+Pengujian dijalankan di Python 3.14.6. Sintaks seluruh 23 file `.py` diperiksa dengan
+`ast.parse(..., feature_version=(3, 8))` dan lolos. Pencarian tidak menemukan fungsi pustaka standar yang baru
+ada di Python 3.9 ke atas, tetapi program belum dijalankan langsung di Python 3.8.
+
+## Hasil
+
+Terakhir dijalankan: 105 tes, semua lulus (`OK`).
+
+Yang belum ada: pengujian eksploratif manual oleh tim QA dan hasil cross-group code review. Keduanya perlu
+dilengkapi tim setelah review dilakukan.
