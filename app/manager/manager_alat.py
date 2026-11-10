@@ -1,13 +1,9 @@
 from app import validasi
 from app.file_manager import FileManagerError
-from app.konstanta import (
-    FILE_ALAT, KONDISI_BAIK, STATUS_TERSEDIA, STATUS_DIPINJAM,
-)
+from app.konstanta import FILE_ALAT, KONDISI_BAIK, STATUS_TERSEDIA, STATUS_DIPINJAM
 from app.models.alat import Alat
 
-
 class ManagerAlat:
-    """Mengelola data alat di memori (dict kode -> Alat) dan alat.txt."""
 
     def __init__(self, file_manager, logger):
         self.file_manager = file_manager
@@ -22,18 +18,16 @@ class ManagerAlat:
     def sambungkan_transaksi(self, manager_transaksi):
         self.manager_transaksi = manager_transaksi
 
-    # ---------- file ----------
     def muat(self):
-        """Baca file ke memori; kode ganda dan baris tidak valid dilewati dengan peringatan (Aturan 8)."""
         data = {}
         for kolom in self.file_manager.baca_baris(FILE_ALAT):
             try:
                 alat = Alat.dari_baris(kolom)
             except ValueError as e:
-                self.file_manager.catat_peringatan(FILE_ALAT, "baris dilewati (%s): %s" % (e, kolom))
+                self.file_manager.catat_peringatan(FILE_ALAT, 'baris dilewati (%s): %s' % (e, kolom))
                 continue
             if alat.kode in data:
-                self.file_manager.catat_peringatan(FILE_ALAT, "kode alat %s ganda, baris dilewati" % alat.kode)
+                self.file_manager.catat_peringatan(FILE_ALAT, 'kode alat %s ganda, baris dilewati' % alat.kode)
                 continue
             data[alat.kode] = alat
         self._data_alat = data
@@ -48,49 +42,43 @@ class ManagerAlat:
             self.muat()
             raise
 
-    # ---------- pencarian dasar ----------
     @staticmethod
     def _kunci(kode):
         return validasi.rapikan(kode).upper()
 
     def cari_berdasarkan_kode(self, kode):
-        """Mengembalikan Alat, atau None bila tidak ada."""
         return self._data_alat.get(self._kunci(kode))
 
     def ada(self, kode):
         return self._kunci(kode) in self._data_alat
 
     def ambil(self, kode):
-        """Seperti cari_berdasarkan_kode, tetapi ValueError bila tidak ada."""
         alat = self.cari_berdasarkan_kode(kode)
         if alat is None:
-            raise ValueError("Alat dengan kode %s tidak ditemukan." % self._kunci(kode))
+            raise ValueError('Alat dengan kode %s tidak ditemukan.' % self._kunci(kode))
         return alat
 
-    # ---------- kategori dinamis ----------
     def daftar_kategori(self):
         return sorted({a.kategori for a in self._data_alat.values()}, key=str.lower)
 
     def _normalisasi_kategori(self, kategori):
-        """Kategori yang sudah ada dipakai ulang (abaikan huruf besar/kecil); kategori baru ditulis huruf kecil."""
         bersih = validasi.validasi_kategori(kategori)
         for ada in self.daftar_kategori():
             if ada.lower() == bersih.lower():
                 return ada
         return bersih.lower()
 
-    # ---------- operasi (dipanggil menu) ----------
     def tambah(self, kode, nama, kategori, kondisi=KONDISI_BAIK):
         kode = validasi.validasi_kode_alat(kode)
         nama = validasi.validasi_nama_alat(nama)
         kategori = self._normalisasi_kategori(kategori)
         kondisi = validasi.validasi_kondisi(kondisi)
         if kode in self._data_alat:
-            raise ValueError("Kode alat %s sudah terdaftar." % kode)
+            raise ValueError('Kode alat %s sudah terdaftar.' % kode)
         alat = Alat(kode, nama, kategori, kondisi)
         self._data_alat[kode] = alat
         self._simpan_atau_pulihkan()
-        self.logger.catat("Alat %s ditambahkan" % kode)
+        self.logger.catat('Alat %s ditambahkan' % kode)
         return alat
 
     def edit(self, kode, nama=None, kategori=None, kondisi=None):
@@ -98,26 +86,24 @@ class ManagerAlat:
         nama_baru = alat.nama if validasi.kosong(nama) else validasi.validasi_nama_alat(nama)
         kategori_baru = alat.kategori if validasi.kosong(kategori) else self._normalisasi_kategori(kategori)
         kondisi_baru = alat.kondisi if validasi.kosong(kondisi) else validasi.validasi_kondisi(kondisi)
-        alat.nama, alat.kategori, alat.kondisi = nama_baru, kategori_baru, kondisi_baru
+        alat.nama, alat.kategori, alat.kondisi = (nama_baru, kategori_baru, kondisi_baru)
         alat.sesuaikan_status()
         self._simpan_atau_pulihkan()
-        self.logger.catat("Alat %s diubah" % alat.kode)
+        self.logger.catat('Alat %s diubah' % alat.kode)
         return alat
 
     def hapus(self, kode):
         alat = self.ambil(kode)
         aktif = self.manager_transaksi is not None and self.manager_transaksi.alat_dalam_transaksi_aktif(alat.kode)
         if aktif or alat.status == STATUS_DIPINJAM:
-            raise ValueError("Alat %s sedang dipinjam (transaksi aktif), tidak dapat dihapus." % alat.kode)
+            raise ValueError('Alat %s sedang dipinjam (transaksi aktif), tidak dapat dihapus.' % alat.kode)
         del self._data_alat[alat.kode]
         self._simpan_atau_pulihkan()
-        self.logger.catat("Alat %s dihapus" % alat.kode)
+        self.logger.catat('Alat %s dihapus' % alat.kode)
 
     def cari(self, kata_kunci):
-        """Tantangan A: cocok dengan kode, sebagian nama, atau kategori (semua kata harus ditemukan).
-        Kode yang persis sama ditampilkan paling atas."""
         if validasi.kosong(kata_kunci):
-            raise ValueError("Kata kunci tidak boleh kosong.")
+            raise ValueError('Kata kunci tidak boleh kosong.')
         hasil = [a for a in self.semua() if validasi.cocok_kata_kunci(kata_kunci, a.kode, a.nama, a.kategori)]
         persis = self._kunci(kata_kunci)
         return sorted(hasil, key=lambda a: (a.kode != persis, a.kode))
