@@ -1,7 +1,8 @@
-# Kontrak Antarmodul (usulan untuk diskusi 7 November)
+# Kontrak Antarmodul
 
-Dokumen ini mendefinisikan method yang dipanggil `app/menu.py` dan cara modul saling terhubung, supaya Rara,
-Faris, dan Niken dapat bekerja paralel. Bila disepakati lain saat diskusi, ubah dokumen ini dan `menu.py` bersamaan.
+Dokumen ini mendefinisikan method yang dipanggil `app/menu.py` dan cara modul saling terhubung. Awalnya disusun sebagai
+usulan untuk diskusi 7 November agar Fatimah, Faris, dan Niken dapat bekerja paralel; isinya kini disesuaikan dengan
+implementasi. Bila kontrak berubah, ubah dokumen ini dan `menu.py` bersamaan.
 
 ## 1. Aturan umum
 
@@ -38,7 +39,7 @@ mahasiswa.sambungkan_transaksi(transaksi)  # untuk Aturan 6
 
 ## 3. Method yang dipanggil menu
 
-### ManagerMahasiswa (Rara)
+### ManagerMahasiswa (Fatimah)
 
 | Method | Keterangan |
 |---|---|
@@ -50,7 +51,7 @@ mahasiswa.sambungkan_transaksi(transaksi)  # untuk Aturan 6
 | `semua()` | list `Mahasiswa` |
 | `sambungkan_transaksi(manager_transaksi)` | menyimpan referensi |
 
-### ManagerAlat (Rara)
+### ManagerAlat (Fatimah)
 
 | Method | Keterangan |
 |---|---|

@@ -9,6 +9,9 @@ cross-group code review dilakukan.
 - `ManagerTransaksi` memeriksa riwayat dengan memindai seluruh transaksi (`_jumlah_aktif`,
   `alat_punya_riwayat`), sehingga O(n) per pemeriksaan.
 - Tidak ada penguncian file, jadi dua proses yang berjalan bersamaan dapat saling menimpa data.
+- Data yang gagal dimuat (baris rusak, rujukan yang hilang, atau duplikat) hanya diberi peringatan lalu dilewati. Karena file
+  ditulis ulang utuh pada penyimpanan berikutnya, baris itu hilang dari file. Ini menjaga konsistensi (Aturan 7 dan 8),
+  tetapi dapat membuang data yang diedit manual, misalnya bila `mahasiswa.txt` dihapus maka transaksinya ikut terbuang.
 - Status turunan (status alat, status transaksi, status aktif mahasiswa) ikut disimpan di file, sehingga dapat tidak
   sinkron bila file diedit manual. Program memperbaikinya saat memuat, tetapi lebih bersih bila data turunan
   dihitung dan tidak disimpan.
@@ -54,5 +57,9 @@ mengandung `|` atau baris baru, dan tidak ada versi format.
 - `EOFError` (Ctrl+Z/Ctrl+D) saat mengisi input tidak lagi tampil sebagai `[ERROR]`; program menyimpan dan keluar.
 - Input No. HP saat menambah mahasiswa boleh dikosongkan, sesuai model `Mahasiswa`.
 - Menu kini punya tes otomatis (`tests/test_menu.py`); sebelumnya `menu.py` tidak tercakup tes sama sekali.
+- Kesembilan skenario wajib dijalankan lewat `main.py` sungguhan dan hasilnya didokumentasikan di
+  `docs/bukti_eksekusi_skenario.md` (skrip: `tests/skenario_wajib.py`).
+- `data/mahasiswa.txt` disesuaikan dengan aturan status otomatis supaya program tidak menampilkan peringatan pada
+  jalankan pertama setelah repository di-clone.
 - UML final (`docs/final/UML_Class_Diagram_Final.drawio`) disesuaikan dengan kode: nama atribut aktual,
   method baru, `FileManagerError`, dan `AplikasiPeminjaman`.
