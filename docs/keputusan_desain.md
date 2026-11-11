@@ -7,9 +7,21 @@ Bagian bertanda **[ISI TIM]** hanya dapat dijawab oleh anggota kelompok karena m
 
 **[ISI TIM]** Rancangan anggota mana yang dijadikan dasar, dan mengapa.
 
-Bahan yang ada di repository: `docs/individu/UML_Peminjaman_Lab_K3525038_Project 2.png` (satu UML individu),
-`docs/kontrak_antarmodul.md` (usulan pembagian tanggung jawab antarmodul untuk diskusi 7 November), dan
-`docs/final/UML_Class_Diagram_Final.drawio` (UML final).
+Bahan yang ada di repository: tiga UML individu di `docs/individu/` (Niken, Faris, dan Arif; UML Fatimah belum ada di repository),
+`docs/kontrak_antarmodul.md` (pembagian tanggung jawab antarmodul), dan UML final di `docs/final/`
+(`UML_Class_Diagram_Final.drawio` dan gambarnya `UML_Class_Diagram_Final.png`).
+
+Perbandingan di bawah hanya merangkum isi ketiga gambar individu dan kode final sebagai bahan diskusi. Ini bukan catatan
+diskusi, jadi alasan pemilihan di atas tetap harus diisi tim.
+
+| Aspek | Niken | Faris | Arif | Final (kode) |
+|---|---|---|---|---|
+| Pemegang data dan aturan bisnis | satu class `PeminjamanService` | tiga manager: `MahasiswaManager`, `AlatManager`, `TransaksiManager` | tiga manager dengan nama yang sama seperti Faris | empat manager: `ManagerMahasiswa`, `ManagerAlat`, `ManagerTransaksi`, `ManagerPengembalian` |
+| Class akses file | `FileManager` | `FileManager` | `FileHandler` | `FileManager` |
+| Class transaksi | `TransaksiPeminjaman` berisi `ItemPeminjaman` | `Transaksi` berisi `DetailTransaksi` | `Transaksi` berisi `DetailTransaksi` | `Transaksi` berisi `DetailTransaksi` |
+| Konversi objek dan baris file | `dari_baris`, `ke_baris` | `from_line`, `to_line` | `dari_baris`, `ke_baris` | `dari_baris`, `ke_baris` |
+| Letak proses pengembalian | `proses_pengembalian` di service | `kembalikan_alat` di `TransaksiManager` | `proses_pengembalian` di `TransaksiManager` | `ManagerPengembalian.kembalikan` (class terpisah) |
+| Log aktivitas (Tantangan D) | tidak ada di diagram | tidak ada di diagram | tidak ada di diagram | `Logger` |
 
 ## 2. Bagian yang diambil atau dimodifikasi dari rancangan anggota lain
 

@@ -4,7 +4,7 @@ Proyek II Praktikum Pemrograman Dasar, Semester 3 Pendidikan Teknik Informatika 
 Aplikasi berbasis Python (OOP) dengan penyimpanan permanen menggunakan text file (`.txt`).
 
 > Status: implementasi selesai, memasuki tahap pengujian dan code review (periode pengerjaan 5 sampai 12 November 2026).
-> Format file di bawah sesuai dengan implementasi dan UML final (`docs/final/UML_Class_Diagram_Final.drawio`).
+> Format file di bawah sesuai dengan implementasi dan UML final (`docs/final/UML_Class_Diagram_Final.drawio`, gambar: `docs/final/UML_Class_Diagram_Final.png`).
 
 ## Anggota Kelompok (Kelompok 2)
 
@@ -33,7 +33,7 @@ mengubah isi file.
 
 ## Cara Menjalankan
 
-Kebutuhan: Python 3.8 atau lebih baru, tanpa library tambahan.
+Kebutuhan: Python 3.8 atau lebih baru (diuji di Python 3.14), tanpa library tambahan.
 
 ```
 python main.py
@@ -44,6 +44,9 @@ Pengujian otomatis (FileManager, Logger, manager, transaksi, menu dengan input b
 ```
 python -m unittest -v
 ```
+
+Bukti menjalankan kesembilan skenario wajib lewat `main.py` (layar dan isi file) ada di `docs/bukti_eksekusi_skenario.md`
+dan dapat diulang dengan `python tests/skenario_wajib.py`.
 
 Folder `data/` dan file di dalamnya dibuat otomatis bila belum ada.
 
@@ -64,8 +67,8 @@ app/
   manager/                    manager_mahasiswa, manager_alat, manager_transaksi, manager_pengembalian
 data/                         file penyimpanan (.txt)
 data_sampel/                  contoh data (5 mahasiswa, 10 alat, 3 transaksi) untuk mencoba program
-docs/                         UML, keputusan desain, pengujian, code review, refleksi
-tests/                        pengujian otomatis (unittest)
+docs/                         UML (final dan individu), keputusan desain, pengujian, bukti eksekusi skenario, code review, refleksi
+tests/                        pengujian otomatis (unittest) dan skrip bukti skenario wajib
 ```
 
 Pembagian tanggung jawab antarmodul dijelaskan di `docs/kontrak_antarmodul.md`.
@@ -92,7 +95,39 @@ Nilai yang diizinkan:
 - status detail transaksi: `dipinjam`, `dikembalikan`
 
 Perilaku pembacaan file: file yang belum ada dibuat otomatis tanpa error, file kosong dianggap tanpa data, dan baris
-yang kolomnya tidak sesuai dilewati dengan peringatan `[PERINGATAN]` sehingga program tetap berjalan.
+yang kolomnya tidak sesuai dilewati dengan peringatan `[PERINGATAN]` sehingga program tetap berjalan. Baris yang dilewati
+tidak ikut tersimpan ketika program menulis ulang file, jadi salin dulu baris tersebut bila masih diperlukan.
+
+Kapan data dibaca dan ditulis:
+- dibaca: sekali saat program mulai (`muat()` pada tiap manager, berurutan alat, mahasiswa, transaksi);
+- ditulis ulang utuh ke file terkait: setiap tambah, edit, hapus, transaksi, dan pengembalian (`simpan()`), serta sekali
+  lagi saat keluar lewat menu 0;
+- ditambahkan di akhir file (mode append): hanya `log.txt`.
+
+Contoh isi (dua baris tiap file, diambil dari `data_sampel/` yang berisi 5 mahasiswa, 10 alat, 3 transaksi; baris log
+bersifat contoh format):
+
+```text
+# mahasiswa.txt
+M001|Andi Pratama|081234567890|aktif
+M002|Budi Santoso|081298765432|tidak aktif
+
+# alat.txt
+A001|Multimeter Digital|pengukuran|baik|dipinjam
+A004|Breadboard|prototyping|rusak ringan|tidak tersedia
+
+# transaksi.txt
+T001|M001|2026-11-02|2026-11-09|dipinjam
+T003|M003|2026-11-03|2026-11-10|sebagian dikembalikan
+
+# detail_transaksi.txt
+T003|A004|dikembalikan|rusak ringan|2026-11-05
+T003|A005|dipinjam|-|-
+
+# log.txt
+[2026-11-10 10:15] Mahasiswa M001 ditambahkan
+[2026-11-10 10:20] Transaksi T001 dibuat oleh M001 (A001, A002)
+```
 
 ## Tantangan yang Dipilih
 
