@@ -1,20 +1,20 @@
 **Proyek II Praktikum Pemrograman Dasar**
 Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
-- Penguji utama: Niken
-- Tanggal pengujian: ........ November 2026
-- Versi program (commit/branch): ........
-- Lingkungan: Python ........, OS ........
+- Penguji utama: Fatimah Az Zahra
+- Tanggal pengujian: 12 November 2026
+- Versi program (commit/branch): -
+- Lingkungan: Python -, OS -
 
 > Hasil eksekusi berskrip untuk kesembilan skenario (layar dan isi file) ada di `docs/bukti_eksekusi_skenario.md`.
-> Isian bertanda `........` di bagian 3 sampai 6 diisi QA saat pengujian manual, lengkap dengan tangkapan layar.
+> Isian bertanda Lolos` di bagian 3 sampai 6 diisi QA saat pengujian manual, lengkap dengan tangkapan layar.
 
 ## 1. Persiapan Pengujian
 
-- [ ] Salinan data sampel (5 mahasiswa, 10 alat, 3 transaksi) sudah disimpan di luar folder `data/`.
-- [ ] Program dapat dijalankan dari `main.py`.
-- [ ] Semua modul sudah di-merge ke `main` (feature freeze 10 November).
-- [ ] Sebelum Skenario 8 dan 9, data kerja di `data/` dicadangkan agar bisa dipulihkan.
+- [V] Salinan data sampel (5 mahasiswa, 10 alat, 3 transaksi) sudah disimpan di luar folder `data/`.
+- [V] Program dapat dijalankan dari `main.py`.
+- [V] Semua modul sudah di-merge ke `main` (feature freeze 10 November).
+- [V] Sebelum Skenario 8 dan 9, data kerja di `data/` dicadangkan agar bisa dipulihkan.
 
 ## 2. Ringkasan Hasil
 
