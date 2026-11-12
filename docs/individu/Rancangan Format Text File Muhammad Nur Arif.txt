@@ -1,0 +1,201 @@
+=====================================================================
+LAPORAN FINAL PROYEK II PRAKTIKUM PEMROGRAMAN DASAR
+Sistem Pengelolaan Peminjaman Peralatan Laboratorium
+Kelompok 2 - PTIK, Universitas Sebelas Maret, Semester 3
+=====================================================================
+Disusun oleh : Arif (NIM ______)
+Repositori   : https://github.com/ariftronic/Kelompok2PraktikumPemrogramanDasarGroupProject2
+Periode      : 5 - 12 November 2026
+Commit uji   : 66f7247
+Lingkungan   : Python 3.8 atau lebih baru (diuji pada Python 3.14)
+---------------------------------------------------------------------
+1. ANGGOTA KELOMPOK
+---------------------------------------------------------------------
+Arif     (NIM K3525034) : Koordinator; FileManager, menu utama, logger
+Fatimah  (NIM K3525006) : Pengelolaan data mahasiswa dan alat
+Faris    (NIM K3525058) : Proses peminjaman (transaksi)
+Niken    (NIM K3525038) : Proses pengembalian dan pengujian (QA)
+---------------------------------------------------------------------
+2. DESKRIPSI SISTEM
+---------------------------------------------------------------------
+Sistem ini merupakan aplikasi berbasis Python dengan pendekatan
+pemrograman berorientasi objek yang digunakan untuk mengelola
+peminjaman peralatan laboratorium. Sistem mencatat data mahasiswa,
+data alat, transaksi peminjaman (satu transaksi dapat memuat beberapa
+alat), serta pengembalian alat secara penuh maupun sebagian beserta
+kondisinya. Seluruh data disimpan secara permanen pada text file.
+
+Aturan bisnis yang diterapkan:
+1. Alat yang tidak tersedia tidak dapat dipinjam.
+2. Setiap mahasiswa dibatasi maksimal dua transaksi aktif.
+3. Satu transaksi dapat memuat lebih dari satu alat.
+4. Pengembalian dapat dilakukan sebagian; status transaksi menjadi
+   "sebagian dikembalikan" hingga seluruh alat dikembalikan.
+5. Alat yang dikembalikan dalam kondisi rusak ringan atau rusak berat
+   tidak kembali berstatus tersedia.
+6. Mahasiswa atau alat yang masih berada pada transaksi aktif tidak
+   dapat dihapus; yang tercatat pada riwayat transaksi pun tidak dapat
+   dihapus untuk menjaga konsistensi data.
+7. Data pada memori harus selalu sama dengan data pada file.
+8. Transaksi harus merujuk pada NIM dan kode alat yang ada.
+Selain itu, batas pengembalian paling lama 7 hari, status aktif
+mahasiswa ditetapkan otomatis oleh program, dan keterlambatan dicatat
+pada log.
+
+Alur data: seluruh file dibaca dan dimuat ke list/dictionary ketika
+program dimulai; setiap perubahan langsung ditulis kembali ke file;
+operasi yang ditolak aturan bisnis tidak mengubah isi file.
+
+Tantangan yang dipilih: Tantangan A (pencarian fleksibel berdasarkan
+kode, sebagian nama, atau kategori) dan Tantangan D (log activities
+pada log.txt dengan mode append).
+---------------------------------------------------------------------
+3. STRUKTUR PROGRAM
+---------------------------------------------------------------------
+main.py                    titik masuk, memanggil menu utama
+app/
+  konstanta.py             pemisah, path, nama kolom, status, aturan bisnis
+  file_manager.py          satu-satunya tempat open()/with/try-except
+  logger.py                log aktivitas ke log.txt (append)
+  validasi.py              helper validasi input
+  menu.py                  tampilan menu dan alur interaksi
+  models/                  Mahasiswa, Alat, Transaksi, DetailTransaksi
+  manager/                 manager_mahasiswa, manager_alat,
+                           manager_transaksi, manager_pengembalian
+data/                      file penyimpanan (.txt)
+data_sampel/               contoh data (5 mahasiswa, 10 alat, 3 transaksi)
+docs/                      UML, kontrak antarmodul, keputusan desain,
+                           pengujian, bukti eksekusi, code review, refleksi
+tests/                     unittest dan skrip skenario wajib
+
+Rancangan class: model menyimpan data serta memvalidasi dan membentuk
+baris file (dari_baris, ke_baris). Manager menyimpan data dalam
+dictionary dengan kunci NIM, kode alat, dan ID transaksi sehingga
+pencarian berkompleksitas O(1) dan data ganda terdeteksi langsung.
+Transaksi berisi list DetailTransaksi karena jumlah alat per transaksi
+bersifat dinamis. FileManager menjadi satu-satunya titik akses file,
+dan Logger dipisahkan agar kegagalan pencatatan log tidak
+menggagalkan operasi utama. Pelanggaran aturan dilempar sebagai
+ValueError dan ditampilkan menu sebagai [DITOLAK].
+---------------------------------------------------------------------
+4. FORMAT TEXT FILE
+---------------------------------------------------------------------
+Ketentuan umum: satu baris mewakili satu data; kolom dipisahkan tanda
+"|"; tidak ada baris judul; nilai kosong ditulis "-"; tanggal
+berformat YYYY-MM-DD; karakter "|" dan baris baru tidak diperbolehkan
+di dalam nilai.
+
+File                   | Kolom
+mahasiswa.txt          | NIM|nama|no_hp|status_aktif
+alat.txt               | kode|nama|kategori|kondisi|status
+transaksi.txt          | id|nim|tgl_pinjam|batas_kembali|status
+detail_transaksi.txt   | id|kode|status|kondisi|tgl_kembali
+log.txt                | [YYYY-MM-DD HH:MM] teks bebas
+
+Nilai yang diizinkan:
+- batas_kembali      : 0 sampai 7 hari setelah tgl_pinjam
+- status_aktif       : aktif | tidak aktif
+- kondisi alat       : baik | rusak ringan | rusak berat
+- status alat        : tersedia | dipinjam | tidak tersedia
+- status transaksi   : dipinjam | sebagian dikembalikan | selesai
+- status detail      : dipinjam | dikembalikan
+
+Contoh isi (data_sampel/):
+  M001|Andi Pratama|081234567890|aktif
+  A001|Multimeter Digital|pengukuran|baik|dipinjam
+  T003|M003|2026-11-03|2026-11-10|sebagian dikembalikan
+  T003|A005|dipinjam|-|-
+  [2026-11-10 10:15] Mahasiswa M001 ditambahkan
+
+Perilaku pembacaan dan penulisan:
+- File yang belum ada dibuat otomatis; file kosong dianggap tanpa data.
+- Baris dengan jumlah kolom tidak sesuai, data ganda, atau rujukan
+  yang tidak ada dilewati disertai peringatan [PERINGATAN], dan
+  program tetap berjalan. Baris yang dilewati tidak ikut tersimpan
+  saat file ditulis ulang.
+- File dibaca sekali saat program mulai dan ditulis ulang utuh pada
+  setiap perubahan serta saat keluar (menu 0). Hanya log.txt yang
+  memakai mode append.
+- Penulisan ulang menggunakan file .tmp dan os.replace agar file lama
+  tidak rusak apabila penulisan terhenti.
+
+Alasan pemilihan format: pemisah "|" mudah diurai dengan split() dan
+join() serta jarang muncul pada nama atau kategori; "-" menjaga jumlah
+kolom tetap; detail_transaksi.txt dipisahkan dari transaksi.txt agar
+jumlah alat dinamis dan pengembalian sebagian tercatat per alat.
+---------------------------------------------------------------------
+5. HASIL PENGUJIAN
+---------------------------------------------------------------------
+Pengujian otomatis (python -m unittest -v): 105 tes, seluruhnya OK.
+Eksekusi sembilan skenario wajib melalui main.py (python
+tests/skenario_wajib.py, tanggal 2026-11-11, Python 3.14.6, Windows):
+
+No | Skenario                                       | Hasil
+1  | Tambah mahasiswa dan alat                      | LULUS
+2  | Peminjaman beberapa alat dalam satu transaksi  | LULUS
+3  | Meminjam alat yang tidak tersedia              | LULUS
+4  | Pengembalian sebagian                          | LULUS
+5  | Pengembalian alat rusak ringan dan rusak berat | LULUS
+6  | Hapus mahasiswa/alat dengan transaksi aktif    | LULUS
+7  | Tutup lalu jalankan ulang program              | LULUS
+8  | File data dihapus atau dikosongkan             | LULUS
+9  | Baris file berformat salah                     | LULUS
+
+Bukti lengkap: docs/bukti_eksekusi_skenario.md
+Pengujian manual QA berikut tangkapan layar: docs/pengujian.md
+---------------------------------------------------------------------
+6. PEMBAGIAN KONTRIBUSI
+---------------------------------------------------------------------
+Arif    : repository dan struktur folder, konstanta.py, file_manager.py,
+          logger.py, menu.py, main.py, README, pengujian
+          FileManager/Logger, Dokumen Keputusan Desain
+Fatimah : models/mahasiswa.py, models/alat.py, manager_mahasiswa.py,
+          manager_alat.py, validasi.py, UML final, data sampel
+Faris   : models/transaksi.py, manager_transaksi.py, slide presentasi
+Niken   : manager_pengembalian.py, pengujian sembilan skenario,
+          dokumen refleksi
+Persentase: Arif ___% | Fatimah ___% | Faris ___% | Niken ___%
+Riwayat rinci tersedia pada histori commit repositori.
+---------------------------------------------------------------------
+7. KENDALA DAN SOLUSI
+---------------------------------------------------------------------
+1. Status turunan (status alat, transaksi, dan aktif mahasiswa) ikut
+   tersimpan di file sehingga dapat tidak sinkron apabila file diedit
+   manual. Solusi: diperbaiki otomatis saat pemuatan disertai
+   peringatan.
+2. Kegagalan penyimpanan di antara dua penulisan file dapat membuat
+   memori berbeda dari file. Solusi: simpan_semua() memuat ulang data
+   dari file dan melempar ulang error; kondisi alat dipulihkan bila
+   penyimpanan pengembalian gagal.
+3. Penghapusan mahasiswa atau alat yang ada pada riwayat membuat
+   transaksi selesai terbuang saat pemuatan ulang. Solusi: data yang
+   tercatat pada transaksi mana pun tidak dapat dihapus.
+4. Status aktif mahasiswa dapat bertentangan dengan transaksi bila
+   diedit manual. Solusi: ditetapkan otomatis dan tidak dapat diedit.
+5. Kode baca/tulis pada ManagerMahasiswa dan ManagerAlat hampir sama.
+   Status: dicatat sebagai bahan perbaikan (class dasar bersama).
+6. Menu semula belum tercakup pengujian. Solusi: ditambahkan
+   tests/test_menu.py dengan input berskrip.
+---------------------------------------------------------------------
+8. KETERBATASAN DAN SARAN PENGEMBANGAN
+---------------------------------------------------------------------
+- Setiap perubahan menulis ulang seluruh file (biaya linear).
+- Pemeriksaan riwayat memindai seluruh transaksi (O(n)).
+- Belum ada penguncian file untuk akses bersamaan.
+- Baris yang dilewati saat pemuatan hilang pada penyimpanan berikutnya.
+- Denda keterlambatan belum tersedia; baru dicatat pada log.
+- Belum ada transaksi atomik antarfile maupun versi format.
+Saran prioritas: (1) penyimpanan inkremental atau database, (2) indeks
+di memori, (3) aturan denda keterlambatan.
+---------------------------------------------------------------------
+9. KESIMPULAN
+---------------------------------------------------------------------
+Sistem peminjaman peralatan laboratorium berbasis text file telah
+diimplementasikan dengan struktur OOP yang memisahkan model, manager,
+akses file, log, dan menu. Seluruh aturan bisnis terpenuhi, sembilan
+skenario wajib lulus, dan 105 tes otomatis berhasil. Data tetap
+tersimpan setelah program ditutup serta tahan terhadap file yang
+hilang, kosong, atau berformat salah. Keterbatasan utama terletak pada
+penyimpanan text file, yang dapat diatasi dengan penyimpanan
+inkremental atau database pada pengembangan selanjutnya.
+=====================================================================
