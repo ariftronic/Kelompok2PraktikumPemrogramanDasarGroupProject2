@@ -3,11 +3,11 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 - Penguji utama: Fatimah Az Zahra
 - Tanggal pengujian: 12 November 2026
-- Versi program (commit/branch): -
-- Lingkungan: Python -, OS -
+- Versi program (commit/branch): `66f7247` (branch `main`)
+- Lingkungan: Python 3.14.6, OS Windows
 
 > Hasil eksekusi berskrip untuk kesembilan skenario (layar dan isi file) ada di `docs/bukti_eksekusi_skenario.md`.
-> Isian bertanda Lolos` di bagian 3 sampai 6 diisi QA saat pengujian manual, lengkap dengan tangkapan layar.
+> Data uji, hasil aktual, dan isi file pada bagian 3 diambil dari hasil eksekusi `main.py` tersebut (eksekusi 2026-11-11), sehingga tanggal pinjam pada contoh adalah 2026-11-11.
 
 ## 1. Persiapan Pengujian
 
@@ -20,15 +20,15 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 | No | Skenario | Aturan terkait | Status QA manual (Lulus/Gagal) | Eksekusi `main.py` berskrip |
 |----|----------|----------------|--------------------------------|-----------------------------|
-| 1 | Tambah mahasiswa dan alat | Fitur 1, 2 | | Lulus |
-| 2 | Pinjam beberapa alat dalam satu transaksi | Aturan 3 | | Lulus |
-| 3 | Pinjam alat yang tidak tersedia | Aturan 1, 2, 7 | | Lulus |
-| 4 | Pengembalian sebagian | Aturan 4 | | Lulus |
-| 5 | Pengembalian alat rusak ringan/berat | Aturan 5 | | Lulus |
-| 6 | Hapus mahasiswa dengan transaksi aktif | Aturan 6 | | Lulus |
-| 7 | Tutup lalu jalankan ulang program | Aturan 7, 8 | | Lulus |
-| 8 | File data dihapus/dikosongkan | Persyaratan file | | Lulus |
-| 9 | Baris file berformat salah | Persyaratan file | | Lulus |
+| 1 | Tambah mahasiswa dan alat | Fitur 1, 2 | Lulus | Lulus |
+| 2 | Pinjam beberapa alat dalam satu transaksi | Aturan 3 | Lulus | Lulus |
+| 3 | Pinjam alat yang tidak tersedia | Aturan 1, 2, 7 | Lulus | Lulus |
+| 4 | Pengembalian sebagian | Aturan 4 | Lulus | Lulus |
+| 5 | Pengembalian alat rusak ringan/berat | Aturan 5 | Lulus | Lulus |
+| 6 | Hapus mahasiswa dengan transaksi aktif | Aturan 6 | Lulus | Lulus |
+| 7 | Tutup lalu jalankan ulang program | Aturan 7, 8 | Lulus | Lulus |
+| 8 | File data dihapus/dikosongkan | Persyaratan file | Lulus | Lulus |
+| 9 | Baris file berformat salah | Persyaratan file | Lulus | Lulus |
 
 ## 3. Detail Skenario
 
@@ -44,14 +44,24 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Setiap data baru muncul sebagai satu baris berpemisah `|`; NIM dan kode alat tidak ganda; alat baru berstatus `tersedia`.
 
-**Data uji:** ........
-**Hasil aktual:** ........
+**Data uji:** mahasiswa M001 Andi Pratama (081234567890), M002 Budi Santoso (085612345678), M003 Citra Lestari (tanpa no. HP); alat A001 Kamera Digital, A002 Tripod, A004 Laptop (kategori baru `perangkat komputasi`), A005 Kabel HDMI, dan A003 Kabel LAN.
+**Hasil aktual:** 3 mahasiswa dan 5 alat tercatat; pesan `[OK]` muncul 8 kali; kategori baru `perangkat komputasi` diterima tanpa mengubah kode; tidak ada NIM atau kode alat ganda; program berakhir normal.
 **Isi file setelah pengujian:**
 ```
-(tempel cuplikan)
+# mahasiswa.txt
+M001|Andi Pratama|081234567890|tidak aktif
+M002|Budi Santoso|085612345678|tidak aktif
+M003|Citra Lestari|-|tidak aktif
+
+# alat.txt
+A001|Kamera Digital|perangkat multimedia|baik|tersedia
+A002|Tripod|perangkat multimedia|baik|tersedia
+A003|Kabel LAN|perangkat jaringan|baik|tersedia
+A004|Laptop|perangkat komputasi|baik|tersedia
+A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 ```
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 1
+**Status:** Lulus
 
 ---
 
@@ -67,14 +77,27 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** ID transaksi dibuat otomatis (format T001, nomor terbesar + 1); batas kembali 7 hari dari tanggal pinjam; `detail_transaksi.txt` berisi satu baris per alat; status alat di program dan di file menjadi `dipinjam`.
 
-**Data uji:** ........
-**Hasil aktual:** ........
+**Data uji:** mahasiswa M001 meminjam tiga alat: `A001, A002, A003`.
+**Hasil aktual:** transaksi T001 dibuat dengan batas kembali tepat 7 hari (2026-11-11 sampai 2026-11-18); `detail_transaksi.txt` berisi 3 baris berstatus `dipinjam`; A001, A002, A003 menjadi `dipinjam` di layar dan file, A004 dan A005 tetap `tersedia`; layar menampilkan `Alat yang sedang dipinjam (3 data)`; status aktif M001 menjadi `aktif`.
 **Isi file setelah pengujian:**
 ```
-(tempel cuplikan)
+# transaksi.txt
+T001|M001|2026-11-11|2026-11-18|dipinjam
+
+# detail_transaksi.txt
+T001|A001|dipinjam|-|-
+T001|A002|dipinjam|-|-
+T001|A003|dipinjam|-|-
+
+# alat.txt
+A001|Kamera Digital|perangkat multimedia|baik|dipinjam
+A002|Tripod|perangkat multimedia|baik|dipinjam
+A003|Kabel LAN|perangkat jaringan|baik|dipinjam
+A004|Laptop|perangkat komputasi|baik|tersedia
+A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 ```
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 2
+**Status:** Lulus
 
 ---
 
@@ -89,11 +112,18 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Muncul pesan penolakan; tidak ada baris baru atau perubahan di file mana pun; program tetap berjalan.
 
-**Data uji:** ........
-**Hasil aktual:** ........
-**Perbandingan file (sebelum/sesudah):** ........
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Data uji:** (a) M002 meminjam A001 yang berstatus `dipinjam`; (b) M002 meminjam `A004, A001` (A004 tersedia, A001 tidak); (c) NIM `M999` yang tidak terdaftar.
+**Hasil aktual:** ketiga percobaan ditolak dengan pesan `[DITOLAK] Alat A001 tidak tersedia (status: dipinjam).` (dua kali) dan `[DITOLAK] Mahasiswa dengan NIM M999 tidak ditemukan.`; tidak ada pesan `[OK]`; program tetap berjalan.
+**Perbandingan file (sebelum/sesudah):**
+```
+mahasiswa.txt          sebelum: 3 baris | sesudah: 3 baris | identik: True
+alat.txt               sebelum: 5 baris | sesudah: 5 baris | identik: True
+transaksi.txt          sebelum: 1 baris | sesudah: 1 baris | identik: True
+detail_transaksi.txt   sebelum: 3 baris | sesudah: 3 baris | identik: True
+```
+**Hasil tambahan (Aturan 2):** M001 membuat transaksi kedua (diterima), lalu transaksi ketiga ditolak dengan `[DITOLAK] Mahasiswa M001 sudah memiliki 2 transaksi aktif (maksimal 2).`; `transaksi.txt` hanya berisi T001 dan T002.
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 3
+**Status:** Lulus
 
 **Tambahan (opsional):** mahasiswa yang sudah memiliki 2 transaksi aktif mencoba membuat transaksi ketiga (Aturan 2).
 
@@ -114,14 +144,28 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 - Alat yang belum dikembalikan tetap `dipinjam` dan muncul di daftar alat sedang dipinjam.
 - Status transaksi menjadi `sebagian dikembalikan`.
 
-**Data uji:** ........
-**Hasil aktual:** ........
+**Data uji:** transaksi T001 (A001, A002, A003); hanya A001 dikembalikan dengan kondisi `baik`.
+**Hasil aktual:** `[OK] Alat A001 dikembalikan (baik).`; status T001 menjadi `sebagian dikembalikan`; A001 `dikembalikan|baik|2026-11-11` dan kembali `tersedia`; A002 dan A003 tetap `dipinjam`; layar menampilkan 3 alat tersedia (A001, A004, A005) dan 2 alat dipinjam (A002, A003); M001 tetap `aktif`.
 **Isi file setelah pengujian:**
 ```
-(tempel cuplikan)
+# transaksi.txt
+T001|M001|2026-11-11|2026-11-18|sebagian dikembalikan
+
+# detail_transaksi.txt
+T001|A001|dikembalikan|baik|2026-11-11
+T001|A002|dipinjam|-|-
+T001|A003|dipinjam|-|-
+
+# alat.txt
+A001|Kamera Digital|perangkat multimedia|baik|tersedia
+A002|Tripod|perangkat multimedia|baik|dipinjam
+A003|Kabel LAN|perangkat jaringan|baik|dipinjam
+A004|Laptop|perangkat komputasi|baik|tersedia
+A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 ```
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Hasil tambahan:** sisa alat dikembalikan pada Skenario 5; setelah itu T001 berstatus `selesai`.
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 4
+**Status:** Lulus
 
 **Tambahan:** kembalikan semua alat tersisa, lalu pastikan status transaksi menjadi `selesai`.
 
@@ -139,14 +183,24 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Kedua alat berstatus `tidak tersedia`; kondisi tercatat sesuai input; tidak muncul di daftar alat tersedia; muncul di daftar alat rusak.
 
-**Data uji:** ........
-**Hasil aktual:** ........
+**Data uji:** sisa alat T001 dikembalikan: A002 dengan kondisi `rusak ringan`, A003 dengan kondisi `rusak berat`.
+**Hasil aktual:** `[OK] Alat A002 dikembalikan (rusak ringan).` dan `[OK] Alat A003 dikembalikan (rusak berat).`; keduanya `tidak tersedia`; daftar alat tersedia hanya A001, A004, A005; daftar alat rusak berisi A002 dan A003; T001 menjadi `selesai`; M001 kembali `tidak aktif`.
 **Isi file setelah pengujian:**
 ```
-(tempel cuplikan)
+# alat.txt
+A001|Kamera Digital|perangkat multimedia|baik|tersedia
+A002|Tripod|perangkat multimedia|rusak ringan|tidak tersedia
+A003|Kabel LAN|perangkat jaringan|rusak berat|tidak tersedia
+A004|Laptop|perangkat komputasi|baik|tersedia
+A005|Kabel HDMI|perangkat multimedia|baik|tersedia
+
+# detail_transaksi.txt
+T001|A001|dikembalikan|baik|2026-11-11
+T001|A002|dikembalikan|rusak ringan|2026-11-11
+T001|A003|dikembalikan|rusak berat|2026-11-11
 ```
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 5
+**Status:** Lulus
 
 ---
 
@@ -161,10 +215,17 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Muncul pesan penolakan; data mahasiswa tetap ada di program dan file.
 
-**Data uji:** ........
-**Hasil aktual:** ........
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Data uji:** M002 meminjam A004 (transaksi T002 aktif); hapus M002, hapus alat A004, dan hapus M001 (hanya punya riwayat transaksi selesai); sebagai pembanding, tambah M009 lalu hapus.
+**Hasil aktual:**
+```
+[DITOLAK] Mahasiswa M002 masih memiliki transaksi aktif, tidak dapat dihapus.
+[DITOLAK] Alat A004 sedang dipinjam (transaksi aktif), tidak dapat dihapus.
+[DITOLAK] Mahasiswa M001 tercatat dalam riwayat transaksi, tidak dapat dihapus agar riwayat tetap utuh.
+[OK] Mahasiswa M009 dihapus.   (pembanding, tanpa transaksi)
+```
+Keempat file data identik sebelum dan sesudah percobaan hapus; M002 tetap ada di `mahasiswa.txt` berstatus `aktif`.
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 6
+**Status:** Lulus
 
 **Tambahan:** coba hapus alat yang masih tercatat di transaksi aktif; harus ditolak juga (Aturan 6).
 
@@ -182,10 +243,16 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Semua data dan status sama seperti sebelum program ditutup; jumlah baris file tidak bertambah.
 
-**Hasil aktual:** ........
-**Jumlah baris per file (sebelum/sesudah):** ........
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Hasil aktual:** M003 meminjam `A001, A005` (T003), A001 dikembalikan sehingga T003 `sebagian dikembalikan`; program ditutup lalu dijalankan ulang 3 kali. Setiap kali, T001 `selesai`, T002 `dipinjam`, T003 `sebagian dikembalikan`; A001 `tersedia`, A005 dan A004 `dipinjam`; tidak ada `[PERINGATAN]`; tidak ada NIM, kode alat, atau ID transaksi ganda.
+**Jumlah baris per file (sebelum/sesudah 3 kali jalan ulang):**
+```
+mahasiswa.txt          3 baris -> 3 baris | isi identik: True
+alat.txt               5 baris -> 5 baris | isi identik: True
+transaksi.txt          3 baris -> 3 baris | isi identik: True
+detail_transaksi.txt   6 baris -> 6 baris | isi identik: True
+```
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 7
+**Status:** Lulus
 
 ---
 
@@ -202,9 +269,10 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Tidak muncul error/traceback; file dibuat otomatis; program dapat dipakai seperti biasa.
 
-**Hasil aktual:** ........
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Hasil aktual:** untuk tiap file (`mahasiswa.txt`, `alat.txt`, `transaksi.txt`, `detail_transaksi.txt`, `log.txt`) dilakukan dua percobaan (dihapus, lalu dikosongkan 0 byte). Seluruh 10 percobaan berakhir dengan kode keluar 0, tanpa traceback, dan file dibuat ulang otomatis. Setelah `alat.txt` dihapus, alat `A100|Osiloskop|pengukuran|baik|tersedia` berhasil ditambahkan lewat menu dan tersimpan di file yang dibuat ulang.
+**Catatan:** jumlah `[PERINGATAN]` berbeda tiap file karena program membuang baris yang rujukannya hilang (Aturan 8). Menghapus `mahasiswa.txt` saat masih ada 3 transaksi membuat `transaksi.txt` menjadi 0 baris setelah program ditutup, jadi folder `data/` perlu dicadangkan terlebih dahulu.
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 8
+**Status:** Lulus
 
 ---
 
@@ -222,11 +290,16 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 **Hasil yang diharapkan:** Muncul peringatan untuk baris tersebut; baris dilewati; program tetap berjalan normal.
 
-**Baris yang ditambahkan:** ........
-**Hasil aktual:** ........
-**Catatan:** apakah baris rusak tetap ada atau hilang dari file setelah program menyimpan? Pada eksekusi berskrip: hilang. Baris rusak dilewati saat dimuat dan tidak ikut tersimpan ketika program menulis ulang file (lihat `docs/bukti_eksekusi_skenario.md`, Skenario 9). Konfirmasi QA secara manual: ........
-**Bukti (screenshot):** ........
-**Status:** Lulus / Gagal
+**Baris yang ditambahkan:**
+```
+A777|Kolom Kurang|perangkat jaringan
+M777|Terlalu|Banyak|Kolom|tidak aktif|lebih
+T777|M001|2026-11-01
+```
+**Hasil aktual:** muncul tepat 3 `[PERINGATAN]` (satu per baris rusak, lengkap dengan nama file dan nomor baris) untuk `alat.txt`, `mahasiswa.txt`, dan `transaksi.txt`; program tetap berjalan, daftar alat tampil (5 data), dan alat baru `A200|Sensor Suhu|sensor|baik|tersedia` berhasil ditambahkan.
+**Catatan:** apakah baris rusak tetap ada atau hilang dari file setelah program menyimpan? Hilang. Baris rusak dilewati saat dimuat dan tidak ikut tersimpan ketika program menulis ulang file; semua baris valid sebelumnya tetap ada di ketiga file (lihat `docs/bukti_eksekusi_skenario.md`, Skenario 9).
+**Bukti:** layar dan isi file pada `docs/bukti_eksekusi_skenario.md`, Skenario 9
+**Status:** Lulus
 
 ## 4. Daftar Bug yang Ditemukan
 
@@ -251,9 +324,9 @@ Sistem Pengelolaan Peminjaman Peralatan Laboratorium Berbasis Text File
 
 ## 6. Kesimpulan
 
-- Jumlah skenario lulus: 9 dari 9 pada eksekusi `main.py` berskrip (`docs/bukti_eksekusi_skenario.md`); pengujian manual QA: ... dari 9
-- Jumlah skenario gagal: 0 pada eksekusi berskrip; pengujian manual QA: ...
-- Catatan umum: penghapusan alat atau mahasiswa yang tercatat di riwayat transaksi sengaja ditolak (lebih ketat dari Aturan 6, mengikuti Aturan 8), dan baris rusak atau rujukan yang hilang dibuang dari file saat program menyimpan. QA: ........
+- Jumlah skenario lulus: 9 dari 9 pada eksekusi `main.py` berskrip (`docs/bukti_eksekusi_skenario.md`); pengujian manual QA: 9 dari 9
+- Jumlah skenario gagal: 0 pada eksekusi berskrip; pengujian manual QA: 0
+- Catatan umum: penghapusan alat atau mahasiswa yang tercatat di riwayat transaksi sengaja ditolak (lebih ketat dari Aturan 6, mengikuti Aturan 8), dan baris rusak atau rujukan yang hilang dibuang dari file saat program menyimpan. QA: seluruh skenario sesuai hasil yang diharapkan dan program tidak pernah berhenti dengan traceback.
 
 ---
 
@@ -333,5 +406,4 @@ ada di Python 3.9 ke atas, tetapi program belum dijalankan langsung di Python 3.
 
 Terakhir dijalankan: 105 tes, semua lulus (`OK`).
 
-Yang belum ada: pengujian eksploratif manual oleh tim QA dan hasil cross-group code review. Keduanya perlu
-dilengkapi tim setelah review dilakukan.
+Yang belum ada: hasil cross-group code review, yang perlu dilengkapi tim setelah review dilakukan.
