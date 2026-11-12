@@ -1,91 +1,148 @@
-from datetime import datetime
-from app.konstanta import NILAI_KOSONG, FORMAT_TANGGAL, DAFTAR_KONDISI, DETAIL_DIPINJAM, DETAIL_DIKEMBALIKAN, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI, MAKS_HARI_PINJAM
+"""Model transaksi peminjaman: Transaksi dan DetailTransaksi.
 
-def _periksa_tanggal(nilai, nama_kolom):
-    try:
-        return datetime.strptime(nilai, FORMAT_TANGGAL).date()
-    except ValueError:
-        raise ValueError("%s harus berformat YYYY-MM-DD: '%s'" % (nama_kolom, nilai))
+Format file (pemisah '|', tanpa header, nilai kosong ditulis '-'):
+    transaksi.txt         -> id|nim|tgl_pinjam|batas_kembali|status
+    detail_transaksi.txt  -> id|kode|status|kondisi|tgl_kembali
+"""
+from datetime import date, timedelta
+
+from app.konstanta import (
+    PEMISAH, STATUS_DIPINJAM, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI,
+)
+
+KOSONG = "-"
+FORMAT_TANGGAL = "%Y-%m-%d"
+MAKS_HARI_PINJAM = 7
+DETAIL_DIKEMBALIKAN = "dikembalikan"
+
+
+def _tanggal(teks):
+    """Ubah 'YYYY-MM-DD' menjadi date; raise ValueError jika salah format."""
+    return date.fromisoformat(teks)
+
 
 class DetailTransaksi:
+    """Satu alat di dalam satu transaksi (satu baris detail_transaksi.txt)."""
 
-    def __init__(self, id_transaksi, kode_alat, status=DETAIL_DIPINJAM, kondisi=NILAI_KOSONG, tgl_kembali=NILAI_KOSONG):
+    def __init__(self, id_transaksi, kode, status=STATUS_DIPINJAM,
+                 kondisi=KOSONG, tgl_kembali=KOSONG):
         self.id_transaksi = id_transaksi
-        self.kode_alat = kode_alat
+        self.kode = kode
         self.status = status
         self.kondisi = kondisi
         self.tgl_kembali = tgl_kembali
 
     @classmethod
-    def dari_baris(cls, kolom):
-        _, _, status, kondisi, tgl_kembali = kolom
-        if status == DETAIL_DIKEMBALIKAN:
-            if kondisi not in DAFTAR_KONDISI:
-                raise ValueError("kondisi alat tidak dikenal: '%s'" % kondisi)
-            _periksa_tanggal(tgl_kembali, 'tgl_kembali')
-        elif status == DETAIL_DIPINJAM:
-            if kondisi != NILAI_KOSONG or tgl_kembali != NILAI_KOSONG:
-                raise ValueError("alat yang masih dipinjam harus berkondisi dan bertanggal kembali '%s'" % NILAI_KOSONG)
-        else:
-            raise ValueError("status detail tidak dikenal: '%s'" % status)
-        return cls(*kolom)
+    def dari_baris(cls, baris):
+        """Buat objek dari list 5 kolom string; ValueError jika tidak valid."""
+        if len(baris) != 5:
+            raise ValueError("jumlah kolom detail harus 5")
+        id_trx, kode, status, kondisi, tgl = [k.strip() for k in baris]
+        if not id_trx or not kode:
+            raise ValueError("id atau kode alat kosong")
+        if status not in (STATUS_DIPINJAM, DETAIL_DIKEMBALIKAN):
+            raise ValueError("status detail tidak dikenal: " + status)
+        if tgl != KOSONG:
+            _tanggal(tgl)
+        return cls(id_trx, kode, status, kondisi, tgl)
 
     def ke_baris(self):
-        return [self.id_transaksi, self.kode_alat, self.status, self.kondisi, self.tgl_kembali]
+        """Ubah objek menjadi string berpemisah '|'."""
+        return PEMISAH.join([self.id_transaksi, self.kode, self.status,
+                             self.kondisi, self.tgl_kembali])
 
     def sudah_kembali(self):
+        """True jika alat ini sudah dikembalikan."""
         return self.status == DETAIL_DIKEMBALIKAN
 
-    def kembalikan(self, kondisi, tanggal):
-        self.status = DETAIL_DIKEMBALIKAN
-        self.kondisi = kondisi
-        self.tgl_kembali = tanggal
-
-    def __str__(self):
-        if self.sudah_kembali():
-            return '%s: %s (%s, %s)' % (self.kode_alat, self.status, self.kondisi, self.tgl_kembali)
-        return '%s: %s' % (self.kode_alat, self.status)
 
 class Transaksi:
+    """Satu transaksi peminjaman, berisi satu atau lebih DetailTransaksi."""
 
-    def __init__(self, id_transaksi, nim, tgl_pinjam, batas_kembali, status=TRX_DIPINJAM):
+    def __init__(self, id_transaksi, nim, tgl_pinjam, batas_kembali,
+                 status=TRX_DIPINJAM):
         self.id_transaksi = id_transaksi
         self.nim = nim
-        self.tgl_pinjam = tgl_pinjam
-        self.batas_kembali = batas_kembali
+        self.tgl_pinjam = tgl_pinjam          # string YYYY-MM-DD
+        self.batas_kembali = batas_kembali    # string YYYY-MM-DD
         self.status = status
-        self.daftar_detail = []
+        self.daftar_detail = []               # list objek DetailTransaksi
 
     @classmethod
-    def dari_baris(cls, kolom):
-        _, _, tgl_pinjam, batas_kembali, status = kolom
+    def baru(cls, id_transaksi, nim, daftar_kode, lama_hari=MAKS_HARI_PINJAM,
+             tgl_pinjam=None):
+        """Buat transaksi baru dengan batas kembali = tgl_pinjam + lama_hari."""
+        if not 1 <= lama_hari <= MAKS_HARI_PINJAM:
+            raise ValueError("lama pinjam harus 1 sampai %d hari" % MAKS_HARI_PINJAM)
+        awal = tgl_pinjam or date.today()
+        batas = awal + timedelta(days=lama_hari)
+        trx = cls(id_transaksi, nim, awal.isoformat(), batas.isoformat())
+        for kode in daftar_kode:
+            trx.daftar_detail.append(DetailTransaksi(id_transaksi, kode))
+        return trx
+
+    @classmethod
+    def dari_baris(cls, baris):
+        """Buat objek dari list 5 kolom string; ValueError jika tidak valid."""
+        if len(baris) != 5:
+            raise ValueError("jumlah kolom transaksi harus 5")
+        id_trx, nim, tgl, batas, status = [k.strip() for k in baris]
+        if not id_trx or not nim:
+            raise ValueError("id atau nim kosong")
+        if _tanggal(batas) - _tanggal(tgl) > timedelta(days=MAKS_HARI_PINJAM):
+            raise ValueError("batas kembali melebihi %d hari" % MAKS_HARI_PINJAM)
         if status not in (TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI):
-            raise ValueError("status transaksi tidak dikenal: '%s'" % status)
-        pinjam = _periksa_tanggal(tgl_pinjam, 'tgl_pinjam')
-        batas = _periksa_tanggal(batas_kembali, 'batas_kembali')
-        if not 0 <= (batas - pinjam).days <= MAKS_HARI_PINJAM:
-            raise ValueError('batas_kembali harus 0 sampai %d hari setelah tgl_pinjam (%s sampai %s)' % (MAKS_HARI_PINJAM, tgl_pinjam, batas_kembali))
-        return cls(*kolom)
+            raise ValueError("status transaksi tidak dikenal: " + status)
+        return cls(id_trx, nim, tgl, batas, status)
 
     def ke_baris(self):
-        return [self.id_transaksi, self.nim, self.tgl_pinjam, self.batas_kembali, self.status]
+        """Ubah objek menjadi string berpemisah '|' (tanpa detail)."""
+        return PEMISAH.join([self.id_transaksi, self.nim, self.tgl_pinjam,
+                             self.batas_kembali, self.status])
 
-    def baris_detail(self):
-        return [detail.ke_baris() for detail in self.daftar_detail]
-
-    def masih_aktif(self):
+    def aktif(self):
+        """Transaksi aktif selama belum selesai (Aturan 4)."""
         return self.status != TRX_SELESAI
 
-    def perbarui_status(self):
-        jumlah_kembali = sum((1 for detail in self.daftar_detail if detail.sudah_kembali()))
-        if jumlah_kembali == 0:
-            self.status = TRX_DIPINJAM
-        elif jumlah_kembali == len(self.daftar_detail):
-            self.status = TRX_SELESAI
-        else:
-            self.status = TRX_SEBAGIAN
+    def kode_belum_kembali(self):
+        """Daftar kode alat yang masih dipinjam pada transaksi ini."""
+        return [d.kode for d in self.daftar_detail if not d.sudah_kembali()]
 
-    def __str__(self):
-        baris = ['%s | %s | pinjam %s | batas %s | %s' % (self.id_transaksi, self.nim, self.tgl_pinjam, self.batas_kembali, self.status)]
-        baris += ['     - %s' % detail for detail in self.daftar_detail]
-        return '\n'.join(baris)
+    def cari_detail(self, kode):
+        """Kembalikan DetailTransaksi dengan kode tertentu, atau None."""
+        for d in self.daftar_detail:
+            if d.kode == kode:
+                return d
+        return None
+
+    def perbarui_status(self):
+        """Hitung ulang status dari detail (dipanggil modul pengembalian)."""
+        if not self.daftar_detail:
+            return self.status
+        kembali = [d.sudah_kembali() for d in self.daftar_detail]
+        if all(kembali):
+            self.status = TRX_SELESAI
+        elif any(kembali):
+            self.status = TRX_SEBAGIAN
+        else:
+            self.status = TRX_DIPINJAM
+        return self.status
+
+    def terlambat(self, hari_ini=None):
+        """True jika transaksi masih aktif dan lewat batas kembali."""
+        hari_ini = hari_ini or date.today()
+        return self.aktif() and hari_ini > _tanggal(self.batas_kembali)
+
+    def ke_teks(self, data_alat=None):
+        """Teks tampilan satu transaksi beserta daftar alatnya."""
+        baris = ["%s | NIM %s | pinjam %s | batas %s | %s" % (
+            self.id_transaksi, self.nim, self.tgl_pinjam,
+            self.batas_kembali, self.status)]
+        for d in self.daftar_detail:
+            alat = data_alat.get(d.kode) if data_alat else None
+            nama = getattr(alat, "nama", "-") if alat else "-"
+            tambahan = d.status
+            if d.sudah_kembali():
+                tambahan += ", kondisi %s, kembali %s" % (d.kondisi, d.tgl_kembali)
+            baris.append("    - %s (%s): %s" % (d.kode, nama, tambahan))
+        return "\n".join(baris)
