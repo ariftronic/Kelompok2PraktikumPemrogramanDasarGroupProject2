@@ -1,4 +1,4 @@
-from app.konstanta import FILE_ALAT, FILE_MAHASISWA, KONDISI_BAIK, MHS_TIDAK_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA
+from app.konstanta import FILE_ALAT, FILE_MAHASISWA, KONDISI_BAIK, MHS_TIDAK_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA, STATUS_TIDAK_TERSEDIA
 
 class AlatTiruan:
 
@@ -11,6 +11,15 @@ class AlatTiruan:
 
     def ke_baris(self):
         return [self.kode, self.nama, self.kategori, self.kondisi, self.status]
+
+    def tandai_dipinjam(self):
+        if self.status != STATUS_TERSEDIA:
+            raise ValueError('Alat %s tidak tersedia.' % self.kode)
+        self.status = STATUS_DIPINJAM
+
+    def tandai_dikembalikan(self, kondisi):
+        self.kondisi = kondisi
+        self.status = STATUS_TERSEDIA if kondisi == KONDISI_BAIK else STATUS_TIDAK_TERSEDIA
 
     def __str__(self):
         return ' | '.join(self.ke_baris())
@@ -39,8 +48,11 @@ class ManagerAlatTiruan:
     def muat(self):
         self.data = [AlatTiruan(*k) for k in self.file_manager.baca_baris(FILE_ALAT)]
 
+    def isi_file(self):
+        return (FILE_ALAT, [a.ke_baris() for a in self.data])
+
     def simpan(self):
-        self.file_manager.tulis_baris(FILE_ALAT, [a.ke_baris() for a in self.data])
+        self.file_manager.tulis_baris(*self.isi_file())
 
     def semua(self):
         return list(self.data)
@@ -74,8 +86,11 @@ class ManagerMahasiswaTiruan:
     def muat(self):
         self.data = [MahasiswaTiruan(*k) for k in self.file_manager.baca_baris(FILE_MAHASISWA)]
 
+    def isi_file(self):
+        return (FILE_MAHASISWA, [m.ke_baris() for m in self.data])
+
     def simpan(self):
-        self.file_manager.tulis_baris(FILE_MAHASISWA, [m.ke_baris() for m in self.data])
+        self.file_manager.tulis_baris(*self.isi_file())
 
     def semua(self):
         return list(self.data)

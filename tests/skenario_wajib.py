@@ -8,6 +8,8 @@ ulang docs/bukti_eksekusi_skenario.md. Berkas ini sengaja tidak bernama test*.py
 import datetime
 import itertools
 import os
+import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -19,7 +21,7 @@ if __name__ != '__main__':
 PROYEK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_MD = os.path.join(PROYEK, 'docs', 'bukti_eksekusi_skenario.md')
 TMP = tempfile.mkdtemp()
-DATA = ('mahasiswa.txt', 'alat.txt', 'transaksi.txt', 'detail_transaksi.txt')
+DATA = ('mahasiswa.txt', 'alat.txt', 'transaksi.txt', 'detail_transaksi.txt', 'pemeliharaan.txt')
 SEMUA_FILE = DATA + ('log.txt',)
 HARI_INI = datetime.date.today()
 TGL = HARI_INI.strftime('%Y-%m-%d')
@@ -120,8 +122,10 @@ def kode(isi_blok):
         baris = (isi_blok if isi_blok is not None else '(file tidak ada)').rstrip('\n').split('\n')
     if baris == ['']:
         baris = ['(kosong)']
+    # path folder sementara (berisi nama pengguna komputer) diganti path relatif terhadap folder proyek
+    sementara = re.compile(re.escape(TMP) + r'[\\/][^\\/\s]+[\\/]')
     MD.append('```text')
-    MD.extend(baris)
+    MD.extend(sementara.sub('', b) for b in baris)
     MD.append('```')
 
 
@@ -245,7 +249,7 @@ cek = [
     ('ketiga percobaan ditolak (3 pesan `[DITOLAK]`)', len(tag(r3[1], '[DITOLAK]')) == 3),
     ('pesan penolakan menyebut alat A001 tidak tersedia', any('A001 tidak tersedia' in b for b in tag(r3[1], '[DITOLAK]'))),
     ('tidak ada pesan `[OK]` pada percobaan yang ditolak', not tag(r3[1], '[OK]')),
-    ('keempat file data identik byte demi byte sebelum dan sesudah', sebelum == sesudah),
+    ('semua file data identik byte demi byte sebelum dan sesudah', sebelum == sesudah),
     ('transaksi kedua M001 diterima, transaksi ketiga ditolak karena maksimal 2 transaksi aktif',
      len(tag(r3b[1], '[OK]')) == 1 and any('maksimal 2' in b for b in tag(r3b[1], '[DITOLAK]'))),
     ('setelah penolakan Aturan 2, `transaksi.txt` hanya berisi T001 dan T002', len(baris_file(Q, 'transaksi.txt')) == 2),
@@ -349,7 +353,7 @@ cek = [
     ('M002 (transaksi aktif) ditolak dihapus', len(pesan6) == 3 and 'transaksi aktif' in pesan6[0] and 'M002' in pesan6[0]),
     ('alat A004 (sedang dipinjam) ditolak dihapus', 'A004' in pesan6[1] and 'transaksi aktif' in pesan6[1]),
     ('M001 (hanya riwayat) ditolak dihapus agar riwayat transaksi tetap valid (Aturan 8)', 'riwayat' in pesan6[2]),
-    ('keempat file data identik sebelum dan sesudah penolakan', sebelum6 == sesudah6),
+    ('semua file data identik sebelum dan sesudah penolakan', sebelum6 == sesudah6),
     ('mahasiswa tanpa transaksi (M009) dapat dihapus, jadi larangan hanya berlaku bila ada transaksi',
      any('M009 dihapus' in b for b in tag(r6c[1], '[OK]')) and 'M009' not in isi(P, 'mahasiswa.txt')),
     ('pinjaman M002 diterima sebelum percobaan hapus', len(tag(r6a[1], '[OK]')) == 1 and 'M002|Budi Santoso|085612345678|aktif' in sebelum6[0]),
@@ -410,15 +414,19 @@ for nama in SEMUA_FILE:
 X = salin(P, 's8_orphan')
 os.remove(os.path.join(X, 'data', 'mahasiswa.txt'))
 trx_sebelum = isi(X, 'transaksi.txt')
+dipinjam_sebelum = [b.split('|')[0] for b in baris_file(X, 'alat.txt') if b.endswith('|dipinjam')]
 kx, ox, ex = jalan(X, ['0'])
 trx_sesudah = isi(X, 'transaksi.txt')
+trx_karantina = baris_file(X, os.path.join('karantina', 'transaksi.txt'))
+detail_karantina = baris_file(X, os.path.join('karantina', 'detail_transaksi.txt'))
+alat_x = baris_file(X, 'alat.txt')
 W = salin(P, 's8_tambah')
 os.remove(os.path.join(W, 'data', 'alat.txt'))
 k8, o8, e8 = jalan(W, ['2', '1', 'A100', 'Osiloskop', 'pengukuran', '', '0', '0'])
 alat8 = isi(W, 'alat.txt')
 h('## Skenario 8: File data dihapus atau dikosongkan')
 h()
-h('**Langkah:** untuk setiap file (`mahasiswa.txt`, `alat.txt`, `transaksi.txt`, `detail_transaksi.txt`, `log.txt`) dilakukan dua percobaan terpisah pada '
+h('**Langkah:** untuk setiap file (`mahasiswa.txt`, `alat.txt`, `transaksi.txt`, `detail_transaksi.txt`, `pemeliharaan.txt`, `log.txt`) dilakukan dua percobaan terpisah pada '
   'salinan data dari Skenario 7: file dihapus, lalu file dikosongkan (0 byte). Tiap percobaan menjalankan program dan langsung keluar (menu 0). '
   'Lalu, setelah `alat.txt` dihapus, menambah alat `A100` lewat menu.')
 h()
@@ -427,8 +435,8 @@ h('|---|---|---|---|---|---|')
 for nama, aksi, k, tb, ada, w in baris8:
     h('| `%s` | %s | %d | %s | %s | %d |' % (nama, aksi, k, 'ya' if tb else 'tidak', 'ya' if ada else 'tidak', w))
 h()
-h('Jumlah `[PERINGATAN]` berbeda-beda karena program membuang baris yang rujukannya hilang (Aturan 8) dan memperbaiki status alat atau mahasiswa '
-  'yang bergantung padanya. `log.txt` tidak dirujuk file lain, jadi tidak menimbulkan peringatan.')
+h('Jumlah `[PERINGATAN]` berbeda-beda karena baris yang rujukannya hilang dipindahkan ke `data/karantina/` (Aturan 8) dan status alat atau '
+  'mahasiswa yang bergantung padanya disesuaikan. `log.txt` tidak dirujuk file lain, jadi tidak menimbulkan peringatan.')
 h()
 h('**Menambah data setelah `alat.txt` dihapus (layar dan isi file):**')
 h()
@@ -436,20 +444,24 @@ kode(tag(o8, '[PERINGATAN]')[:3] + tag(o8, '[OK]'))
 h()
 kode(alat8)
 h()
-h('**Dampak yang perlu diketahui:** baris yang dibuang saat memuat tidak ikut tersimpan lagi. Contoh pada salinan terpisah, `mahasiswa.txt` dihapus '
-  'saat masih ada 3 transaksi:')
+h('**Data yang rujukannya hilang tidak dibuang.** Contoh pada salinan terpisah, `mahasiswa.txt` dihapus saat masih ada %d transaksi:' % len(trx_sebelum.splitlines()))
 h()
-kode(tag(ox, '[PERINGATAN]')[:3] + ['...', 'transaksi.txt sebelum: %d baris | sesudah program ditutup: %d baris' % (len(trx_sebelum.splitlines()), len((trx_sesudah or '').splitlines()))])
+kode(tag(ox, '[PERINGATAN]')[:3] + ['...'] + tag(ox, '[INFO]') + ['', 'transaksi.txt sebelum: %d baris | sesudah program ditutup: %d baris' % (len(trx_sebelum.splitlines()), len((trx_sesudah or '').splitlines())),
+     'karantina/transaksi.txt: %d baris | karantina/detail_transaksi.txt: %d baris' % (len(trx_karantina), len(detail_karantina))])
 h()
-h('Jadi menghapus `mahasiswa.txt` atau `alat.txt` tidak membuat program error, tetapi transaksi yang merujuk data itu hilang dari file. '
-  'Salin folder `data/` terlebih dahulu sebelum menguji skenario ini.')
+h('Transaksi itu tidak dimuat karena NIM-nya tidak ada (Aturan 8), tetapi barisnya tersimpan utuh di `data/karantina/` sehingga dapat '
+  'dipulihkan. Alat yang tadinya dipinjam ditandai `tidak tersedia` (bukan `tersedia`) sampai diperiksa petugas, jadi tidak bisa dipinjam orang lain.')
 h()
 cek = [
-    ('semua 10 percobaan berakhir dengan kode keluar 0', all(b[2] == 0 for b in baris8)),
+    ('semua %d percobaan berakhir dengan kode keluar 0' % len(baris8), all(b[2] == 0 for b in baris8)),
     ('tidak ada traceback pada satupun percobaan', not any(b[3] for b in baris8)),
     ('file yang dihapus dibuat ulang otomatis pada semua percobaan', all(b[4] for b in baris8)),
     ('program tetap dapat dipakai: alat `A100` tersimpan di `alat.txt` yang dibuat ulang',
      k8 == 0 and 'A100|Osiloskop|pengukuran|baik|tersedia' in (alat8 or '') and tanpa_error((k8, o8, e8))),
+    ('transaksi yang rujukannya hilang tersimpan utuh di `data/karantina/` (tidak ada data yang hilang)',
+     sorted(trx_karantina) == sorted(trx_sebelum.splitlines()) and kx == 0 and tanpa_error((kx, ox, ex))),
+    ('alat yang sedang dipinjam tidak berubah menjadi `tersedia`',
+     bool(dipinjam_sebelum) and all(any(b.startswith(k + '|') and b.endswith('|tidak tersedia') for b in alat_x) for k in dipinjam_sebelum)),
 ]
 selesai(8, 'File data dihapus atau dikosongkan', cek)
 
@@ -462,6 +474,9 @@ for n, t in tambah.items():
     with open(os.path.join(W, 'data', n), 'a', encoding='utf-8') as f:
         f.write(t)
 k9, o9, e9 = jalan(W, ['2', '5', '0', '2', '1', 'A200', 'Sensor Suhu', 'sensor', '', '0', '0'])
+karantina9 = {n: baris_file(W, os.path.join('karantina', n)) for n in tambah}
+k9b, o9b, e9b = jalan(W, ['0'])
+karantina9b = {n: baris_file(W, os.path.join('karantina', n)) for n in tambah}
 h('## Skenario 9: Baris berformat salah')
 h()
 h('**Langkah:** pada salinan data ditambahkan secara manual satu baris rusak ke tiga file: `alat.txt` (3 kolom, seharusnya 5), `mahasiswa.txt` '
@@ -476,8 +491,13 @@ h('**Layar (peringatan dan operasi sesudahnya):**')
 h()
 kode(tag(o9, '[PERINGATAN]') + [''] + blok_dari(o9, 'Daftar alat (', ke=0) + [''] + tag(o9, '[OK]'))
 h()
-h('**Catatan perilaku:** baris rusak dilewati saat dimuat dan tidak ikut tersimpan. Setelah program menyimpan, baris rusak tersebut hilang dari file '
-  '(lihat pemeriksaan di bawah). Bila baris itu masih ingin dipertahankan, salin dulu sebelum menjalankan program.')
+h('**Catatan perilaku:** baris rusak dilewati saat dimuat lalu dipindahkan ke `data/karantina/<nama file>`, sehingga tidak hilang walaupun '
+  'file utama ditulis ulang. File utama langsung disamakan dengan data di program (Aturan 7), jadi peringatan yang sama tidak muncul lagi '
+  'saat program dijalankan berikutnya.')
+h()
+h('**Isi folder `data/karantina/`:**')
+h()
+kode(['# %s' % n + '\n' + '\n'.join(b) for n, b in karantina9.items()])
 h()
 h('**Isi `alat.txt` sesudah program ditutup:**')
 h()
@@ -494,31 +514,87 @@ cek = [
      all(all(b in baris_file(W, n) for b in asli9[n]) for n in tambah)),
     ('baris rusak tidak tersimpan kembali ke file', not any(x in (isi(W, n) or '') for n, x in (('alat.txt', 'A777'), ('mahasiswa.txt', 'M777'), ('transaksi.txt', 'T777')))),
     ('`A200` tersimpan di `alat.txt`', 'A200|Sensor Suhu|sensor|baik|tersedia' in isi(W, 'alat.txt')),
+    ('ketiga baris rusak tersimpan utuh di `data/karantina/`', all(karantina9[n] == [t.strip()] for n, t in tambah.items())),
+    ('saat dijalankan ulang tidak ada `[PERINGATAN]` lagi dan isi karantina tidak bertambah',
+     '[PERINGATAN]' not in o9b and karantina9b == karantina9 and k9b == 0),
     ('program berakhir normal', k9 == 0 and tanpa_error((k9, o9, e9))),
 ]
 selesai(9, 'Baris berformat salah', cek)
+
+# ===================== Tambahan: Tantangan B, C, F =====================
+T = proyek_baru('tantangan')
+os.makedirs(os.path.join(T, 'data'))
+for n in DATA:
+    shutil.copy(os.path.join(PROYEK, 'data_sampel', n), os.path.join(T, 'data', n))
+rt = jalan(T, ['12', '13', '1', 'A004', '2', 'A009', '4', '0', '14', '1', '2', '3', 'M003', '0', '0'])
+folder_laporan = os.path.join(T, 'laporan')
+daftar_laporan = sorted(os.listdir(folder_laporan)) if os.path.isdir(folder_laporan) else []
+isi_laporan = ''
+if 'alat_dipinjam_%s.txt' % TGL in daftar_laporan:
+    with open(os.path.join(folder_laporan, 'alat_dipinjam_%s.txt' % TGL), encoding='utf-8') as f:
+        isi_laporan = f.read()
+pml = isi(T, 'pemeliharaan.txt') or ''
+alat_t = baris_file(T, 'alat.txt')
+h('## Tambahan: Tantangan B, C, dan F')
+h()
+h('**Langkah:** pada salinan data sampel (`data_sampel/`): menu 12 (Statistik peminjaman); menu 13 (Pemeliharaan alat) untuk memasukkan `A004` '
+  '(rusak ringan) ke pemeliharaan, menyelesaikan pemeliharaan `A009`, lalu menampilkan riwayat pemeliharaan; menu 14 (Ekspor laporan) untuk '
+  'membuat ketiga laporan (riwayat untuk `M003`).')
+h()
+h('**Layar statistik:**')
+h()
+kode(blok_dari(rt[1], 'Jumlah transaksi aktif', ke=0) + [''] + blok_dari(rt[1], 'Alat yang paling sering dipinjam (', ke=0)
+     + [''] + blok_dari(rt[1], 'Mahasiswa yang paling sering meminjam (', ke=0))
+h()
+h('**Layar pemeliharaan dan laporan:**')
+h()
+kode(tag(rt[1], '[OK]') + [''] + blok_dari(rt[1], 'Riwayat pemeliharaan (', ke=0))
+h()
+h('**Isi `pemeliharaan.txt` sesudahnya:**')
+h()
+kode(pml)
+h()
+h('**Isi laporan `laporan/alat_dipinjam_%s.txt`:**' % TGL)
+h()
+kode(isi_laporan or '(laporan tidak ditemukan)')
+h()
+cek = [
+    ('statistik menampilkan 2 transaksi aktif dan 1 transaksi selesai',
+     'Jumlah transaksi aktif   : 2' in rt[1] and 'Jumlah transaksi selesai : 1' in rt[1]),
+    ('`A004` masuk pemeliharaan dengan ID baru `P003`', 'P003|A004|%s|-|dalam perbaikan' % TGL in pml),
+    ('pemeliharaan `P002` selesai dan `A009` kembali `baik` serta `tersedia`',
+     'P002|A009|2026-11-06|%s|selesai' % TGL in pml and 'A009|Function Generator|pengukuran|baik|tersedia' in alat_t),
+    ('ketiga laporan dibuat di folder `laporan/`',
+     daftar_laporan == sorted(['alat_dipinjam_%s.txt' % TGL, 'alat_rusak_%s.txt' % TGL, 'riwayat_M003_%s.txt' % TGL])),
+    ('laporan alat dipinjam memuat 3 alat beserta peminjamnya', 'Jumlah: 3 alat' in isi_laporan and 'M001 Andi Pratama' in isi_laporan),
+    ('data mahasiswa dan transaksi tidak berubah karena statistik/laporan hanya membaca data',
+     all(isi(T, n) == open(os.path.join(PROYEK, 'data_sampel', n), encoding='utf-8').read() for n in ('mahasiswa.txt', 'transaksi.txt', 'detail_transaksi.txt'))),
+    ('program berakhir normal', rt[0] == 0 and tanpa_error(rt)),
+]
+selesai(10, 'Tantangan B, C, dan F (tambahan)', cek)
 
 # ===================== Penyusunan dokumen =====================
 kepala = [
     '# Bukti Eksekusi Skenario Pengujian Wajib',
     '',
-    'Dokumen ini berisi hasil menjalankan **`python main.py` sungguhan** untuk kesembilan skenario wajib pada soal Proyek II. Masukan keyboard '
+    'Dokumen ini berisi hasil menjalankan **`python main.py` sungguhan** untuk kesembilan skenario wajib pada soal Proyek II, ditambah satu '
+    'skenario untuk Tantangan B, C, dan F. Masukan keyboard '
     'diberikan lewat stdin, jadi layar dan isi file di bawah adalah keluaran program yang sebenarnya, bukan hasil ketikan ulang.',
     '',
     '| Item | Isian |',
     '|---|---|',
     '| Tanggal eksekusi | %s |' % TGL,
-    '| Lingkungan | Python %s, Windows |' % sys.version.split()[0],
+    '| Lingkungan | Python %s, %s |' % (sys.version.split()[0], platform.system()),
     '| Kode yang diuji | isi `app/` dan `main.py` pada commit %s |' % versi_kode(),
     '| Cara mengulang | `python tests/skenario_wajib.py` dari folder proyek (menulis ulang dokumen ini) |',
     '| Tempat eksekusi | salinan sementara proyek dengan folder `data/` kosong; folder `data/` di repository tidak disentuh |',
     '| Pemeriksaan | tiap skenario memuat daftar pemeriksaan yang dihitung oleh skrip, lalu hasil LULUS/GAGAL ditentukan dari daftar itu |',
     '',
     'Skenario 1 sampai 7 dijalankan berurutan pada data yang sama (data dari skenario sebelumnya dipakai skenario berikutnya). Skenario 8 dan 9 '
-    'memakai salinan dari data akhir Skenario 7. Tanggal pinjam pada contoh sama dengan tanggal eksekusi.',
+    'memakai salinan dari data akhir Skenario 7. Skenario tambahan memakai salinan `data_sampel/`. Tanggal pinjam pada contoh sama dengan '
+    'tanggal eksekusi.',
     '',
-    '**Yang belum dicakup dokumen ini:** pengujian manual oleh QA dengan tangkapan layar (kolom "Bukti (screenshot)" di `docs/pengujian.md`) dan '
-    'review oleh kelompok lain. Dokumen ini dapat dipakai sebagai pembanding hasilnya.',
+    'Hasil pengujian manual dan pengujian otomatis (unittest) dirangkum di `docs/pengujian.md`.',
     '',
     '## Ringkasan',
     '',

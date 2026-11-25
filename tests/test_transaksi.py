@@ -125,12 +125,25 @@ class UjiPeminjaman(DasarUji):
         self.assertEqual(sebelum, sesudah)
         self.assertEqual(len(self.transaksi.semua()), 1)
 
-    def test_gagal_simpan_pertama_mengembalikan_memori_ke_file(self):
-        with mock.patch.object(self.alat, 'simpan', side_effect=FileManagerError('disk penuh')):
+    def test_gagal_simpan_mengembalikan_memori_ke_file(self):
+        path = os.path.join(self.folder, FILE_ALAT + '.tmp')
+        os.mkdir(path)
+        try:
             with self.assertRaises(FileManagerError):
                 self.transaksi.buat('M001', ['A001'])
+        finally:
+            os.rmdir(path)
         self.assertEqual(self.status_alat('A001'), STATUS_TERSEDIA)
         self.assertEqual(self.transaksi.semua(), [])
+        self.assertEqual(self.isi(FILE_TRANSAKSI), '')
+
+    def test_transaksi_diurutkan_menurut_nomor(self):
+        with open(os.path.join(self.folder, FILE_TRANSAKSI), 'w', encoding='utf-8') as f:
+            f.write('T1000|M001|2026-11-10|2026-11-17|dipinjam\nT999|M002|2026-11-09|2026-11-16|dipinjam\n')
+        with open(os.path.join(self.folder, FILE_DETAIL_TRANSAKSI), 'w', encoding='utf-8') as f:
+            f.write('T1000|A001|dipinjam|-|-\nT999|A002|dipinjam|-|-\n')
+        baru = self.muat_ulang()
+        self.assertEqual([t.id_transaksi for t in baru.semua()], ['T999', 'T1000'])
 
     def test_muat_ulang_sama_dengan_sebelum_ditutup(self):
         self.transaksi.buat('M001', ['A001', 'A002'])
@@ -219,6 +232,12 @@ class UjiPengembalian(DasarUji):
         sesudah = (self.isi(FILE_TRANSAKSI), self.isi(FILE_DETAIL_TRANSAKSI), self.isi(FILE_ALAT))
         self.assertEqual(sebelum, sesudah)
         self.assertEqual(self.transaksi.ambil('T001').status, TRX_SEBAGIAN)
+
+    def test_kondisi_dengan_tanda_hubung_diterima(self):
+        t = self.pengembalian.kembalikan('T001', 'A001', 'Rusak-Berat')
+        detail = next((d for d in t.daftar_detail if d.kode_alat == 'A001'))
+        self.assertEqual(detail.kondisi, KONDISI_RUSAK_BERAT)
+        self.assertEqual(self.status_alat('A001'), STATUS_TIDAK_TERSEDIA)
 
     def test_daftar_belum_kembali_transaksi_tidak_ada(self):
         with self.assertRaises(ValueError):

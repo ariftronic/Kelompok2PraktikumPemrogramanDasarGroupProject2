@@ -2,6 +2,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from datetime import date
+from app import validasi
 from app.file_manager import FileManager, FileManagerError
 from app.logger import Logger
 from app.konstanta import FILE_MAHASISWA, FILE_ALAT, FILE_LOG, STATUS_TERSEDIA, STATUS_DIPINJAM, STATUS_TIDAK_TERSEDIA, KONDISI_BAIK, KONDISI_RUSAK_RINGAN, KONDISI_RUSAK_BERAT
@@ -121,6 +123,12 @@ class UjiMahasiswa(DasarUji):
         self.mhs.muat()
         self.assertEqual(len(self.mhs.semua()), 2)
 
+    def test_nim_ganda_dipindahkan_ke_karantina(self):
+        self.tulis_mentah(FILE_MAHASISWA, 'M001|Andi|0812345678|aktif\nM001|Andi Kembar|0812345678|aktif\n')
+        self.mhs.muat()
+        self.assertEqual([m.nama for m in self.mhs.semua()], ['Andi'])
+        self.assertEqual(self.fm.baca_karantina(FILE_MAHASISWA), ['M001|Andi Kembar|0812345678|aktif'])
+
     def test_cari_fleksibel(self):
         self.muat_sampel()
         self.assertEqual([m.nim for m in self.mhs.cari('andi')], ['M001'])
@@ -230,10 +238,35 @@ class UjiAlat(DasarUji):
         with self.assertRaises(ValueError):
             self.alat.cari('')
 
+    def test_baris_alat_tidak_valid_dipindahkan_ke_karantina(self):
+        self.tulis_mentah(FILE_ALAT, 'A001|Multimeter|pengukuran|baik|tersedia\nA002|Osiloskop|pengukuran|baik|hilang\n')
+        self.alat.muat()
+        self.assertEqual([a.kode for a in self.alat.semua()], ['A001'])
+        self.assertEqual(self.fm.baca_karantina(FILE_ALAT), ['A002|Osiloskop|pengukuran|baik|hilang'])
+
+    def test_cari_alat_berdasarkan_kode_nama_kategori(self):
+        self.alat.tambah('A001', 'Kamera Digital', 'perangkat multimedia')
+        self.alat.tambah('A002', 'Kabel LAN', 'perangkat jaringan')
+        kode = lambda hasil: [a.kode for a in hasil]
+        self.assertEqual(kode(self.alat.cari('kabel', 'nama')), ['A002'])
+        self.assertEqual(kode(self.alat.cari('jaringan', 'kategori')), ['A002'])
+        self.assertEqual(kode(self.alat.cari('jaringan', 'nama')), [])
+        self.assertEqual(kode(self.alat.cari('a00', 'kode')), ['A001', 'A002'])
+        self.assertEqual(kode(self.alat.cari('perangkat', 'kode')), [])
+        with self.assertRaises(ValueError):
+            self.alat.cari('kamera', 'warna')
+
     def test_muat_melewati_kode_ganda_dan_baris_tidak_valid(self):
         self.tulis_mentah(FILE_ALAT, 'A001|Multimeter|pengukuran|baik|tersedia\nA001|Kembar|pengukuran|baik|tersedia\nA002|Osiloskop|pengukuran|baik|rusak\nA003|Power Supply|sumber daya|baik|tersedia\n')
         self.alat.muat()
         self.assertEqual([a.kode for a in self.alat.semua()], ['A001', 'A003'])
         self.assertEqual(len(self.fm.daftar_peringatan), 2)
+class UjiValidasi(unittest.TestCase):
+
+    def test_validasi_tanggal_menolak_format_tidak_baku(self):
+        self.assertEqual(validasi.validasi_tanggal('2026-11-02', 'tgl_pinjam'), date(2026, 11, 2))
+        for nilai in ('2026-11-2', '2026-13-01', '02-11-2026', '', 'besok'):
+            with self.assertRaises(ValueError, msg=nilai):
+                validasi.validasi_tanggal(nilai, 'tgl_pinjam')
 if __name__ == '__main__':
     unittest.main()

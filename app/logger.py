@@ -3,12 +3,14 @@ from app.file_manager import FileManagerError
 from app.konstanta import FILE_LOG, FORMAT_WAKTU_LOG
 
 class Logger:
+    """Tantangan D: mencatat aktivitas ke log.txt dengan mode append."""
 
     def __init__(self, file_manager, nama_file=FILE_LOG):
         self.file_manager = file_manager
         self.nama_file = nama_file
 
     def catat(self, pesan):
+        """Menambah satu baris berstempel waktu; mengembalikan False bila log gagal ditulis."""
         waktu = datetime.now().strftime(FORMAT_WAKTU_LOG)
         try:
             self.file_manager.tambah_baris(self.nama_file, '[%s] %s' % (waktu, pesan))
@@ -18,5 +20,6 @@ class Logger:
             return False
 
     def baca_terakhir(self, jumlah=20):
+        """Baris log terakhir sebanyak jumlah."""
         baris = self.file_manager.baca_teks(self.nama_file)
         return baris[-jumlah:] if jumlah > 0 else []

@@ -1,19 +1,19 @@
 # Bukti Eksekusi Skenario Pengujian Wajib
 
-Dokumen ini berisi hasil menjalankan **`python main.py` sungguhan** untuk kesembilan skenario wajib pada soal Proyek II. Masukan keyboard diberikan lewat stdin, jadi layar dan isi file di bawah adalah keluaran program yang sebenarnya, bukan hasil ketikan ulang.
+Dokumen ini berisi hasil menjalankan **`python main.py` sungguhan** untuk kesembilan skenario wajib pada soal Proyek II, ditambah satu skenario untuk Tantangan B, C, dan F. Masukan keyboard diberikan lewat stdin, jadi layar dan isi file di bawah adalah keluaran program yang sebenarnya, bukan hasil ketikan ulang.
 
 | Item | Isian |
 |---|---|
-| Tanggal eksekusi | 2026-11-11 |
+| Tanggal eksekusi | 2026-11-25 |
 | Lingkungan | Python 3.14.6, Windows |
-| Kode yang diuji | isi `app/` dan `main.py` pada commit `66f7247` |
+| Kode yang diuji | isi `app/` dan `main.py` pada commit `75a733a` ditambah perubahan yang belum di-commit |
 | Cara mengulang | `python tests/skenario_wajib.py` dari folder proyek (menulis ulang dokumen ini) |
 | Tempat eksekusi | salinan sementara proyek dengan folder `data/` kosong; folder `data/` di repository tidak disentuh |
 | Pemeriksaan | tiap skenario memuat daftar pemeriksaan yang dihitung oleh skrip, lalu hasil LULUS/GAGAL ditentukan dari daftar itu |
 
-Skenario 1 sampai 7 dijalankan berurutan pada data yang sama (data dari skenario sebelumnya dipakai skenario berikutnya). Skenario 8 dan 9 memakai salinan dari data akhir Skenario 7. Tanggal pinjam pada contoh sama dengan tanggal eksekusi.
+Skenario 1 sampai 7 dijalankan berurutan pada data yang sama (data dari skenario sebelumnya dipakai skenario berikutnya). Skenario 8 dan 9 memakai salinan dari data akhir Skenario 7. Skenario tambahan memakai salinan `data_sampel/`. Tanggal pinjam pada contoh sama dengan tanggal eksekusi.
 
-**Yang belum dicakup dokumen ini:** pengujian manual oleh QA dengan tangkapan layar (kolom "Bukti (screenshot)" di `docs/pengujian.md`) dan review oleh kelompok lain. Dokumen ini dapat dipakai sebagai pembanding hasilnya.
+Hasil pengujian manual dan pengujian otomatis (unittest) dirangkum di `docs/pengujian.md`.
 
 ## Ringkasan
 
@@ -26,8 +26,9 @@ Skenario 1 sampai 7 dijalankan berurutan pada data yang sama (data dari skenario
 | 5 | Pengembalian alat rusak ringan dan rusak berat | 8 | LULUS |
 | 6 | Hapus mahasiswa/alat dengan transaksi aktif | 7 | LULUS |
 | 7 | Tutup lalu jalankan ulang (termasuk transaksi sebagian) | 7 | LULUS |
-| 8 | File data dihapus atau dikosongkan | 4 | LULUS |
-| 9 | Baris berformat salah | 7 | LULUS |
+| 8 | File data dihapus atau dikosongkan | 6 | LULUS |
+| 9 | Baris berformat salah | 9 | LULUS |
+| 10 | Tantangan B, C, dan F (tambahan) | 7 | LULUS |
 
 ---
 
@@ -90,7 +91,7 @@ A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 
 ```text
 [OK] Transaksi peminjaman berhasil dibuat.
-     T001 | M001 | pinjam 2026-11-11 | batas 2026-11-18 | dipinjam
+     T001 | M001 | pinjam 2026-11-25 | batas 2026-12-02 | dipinjam
      - A001: dipinjam
      - A002: dipinjam
      - A003: dipinjam
@@ -104,7 +105,7 @@ Alat yang sedang dipinjam (3 data)
 **Isi `transaksi.txt`:**
 
 ```text
-T001|M001|2026-11-11|2026-11-18|dipinjam
+T001|M001|2026-11-25|2026-12-02|dipinjam
 ```
 
 **Isi `detail_transaksi.txt`:**
@@ -135,7 +136,7 @@ M003|Citra Lestari|-|tidak aktif
 
 **Pemeriksaan otomatis**
 
-- [x] `transaksi.txt` berisi satu baris `T001|M001|2026-11-11|2026-11-18|dipinjam` (batas kembali tepat 7 hari)
+- [x] `transaksi.txt` berisi satu baris `T001|M001|2026-11-25|2026-12-02|dipinjam` (batas kembali tepat 7 hari)
 - [x] `detail_transaksi.txt` berisi satu baris per alat (3 baris) berstatus `dipinjam`
 - [x] status A001, A002, A003 di file menjadi `dipinjam`; A004 dan A005 tetap `tersedia`
 - [x] layar menampilkan `Alat yang sedang dipinjam (3 data)`
@@ -165,6 +166,7 @@ mahasiswa.txt          sebelum: 3 baris | sesudah: 3 baris | identik: True
 alat.txt               sebelum: 5 baris | sesudah: 5 baris | identik: True
 transaksi.txt          sebelum: 1 baris | sesudah: 1 baris | identik: True
 detail_transaksi.txt   sebelum: 3 baris | sesudah: 3 baris | identik: True
+pemeliharaan.txt       sebelum: 0 baris | sesudah: 0 baris | identik: True
 ```
 
 **Tambahan, Aturan 2 (salinan terpisah):**
@@ -179,7 +181,7 @@ detail_transaksi.txt   sebelum: 3 baris | sesudah: 3 baris | identik: True
 - [x] ketiga percobaan ditolak (3 pesan `[DITOLAK]`)
 - [x] pesan penolakan menyebut alat A001 tidak tersedia
 - [x] tidak ada pesan `[OK]` pada percobaan yang ditolak
-- [x] keempat file data identik byte demi byte sebelum dan sesudah
+- [x] semua file data identik byte demi byte sebelum dan sesudah
 - [x] transaksi kedua M001 diterima, transaksi ketiga ditolak karena maksimal 2 transaksi aktif
 - [x] setelah penolakan Aturan 2, `transaksi.txt` hanya berisi T001 dan T002
 - [x] program tetap berjalan sampai keluar normal
@@ -196,8 +198,8 @@ detail_transaksi.txt   sebelum: 3 baris | sesudah: 3 baris | identik: True
 
 ```text
 [OK] Alat A001 dikembalikan (baik).
-     T001 | M001 | pinjam 2026-11-11 | batas 2026-11-18 | sebagian dikembalikan
-     - A001: dikembalikan (baik, 2026-11-11)
+     T001 | M001 | pinjam 2026-11-25 | batas 2026-12-02 | sebagian dikembalikan
+     - A001: dikembalikan (baik, 2026-11-25)
      - A002: dipinjam
      - A003: dipinjam
 
@@ -214,13 +216,13 @@ Alat yang sedang dipinjam (2 data)
 **Isi `transaksi.txt`:**
 
 ```text
-T001|M001|2026-11-11|2026-11-18|sebagian dikembalikan
+T001|M001|2026-11-25|2026-12-02|sebagian dikembalikan
 ```
 
 **Isi `detail_transaksi.txt`:**
 
 ```text
-T001|A001|dikembalikan|baik|2026-11-11
+T001|A001|dikembalikan|baik|2026-11-25
 T001|A002|dipinjam|-|-
 T001|A003|dipinjam|-|-
 ```
@@ -238,7 +240,7 @@ A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 **Pemeriksaan otomatis**
 
 - [x] status transaksi berubah menjadi `sebagian dikembalikan`
-- [x] `A001` tercatat `dikembalikan|baik|2026-11-11` di `detail_transaksi.txt`
+- [x] `A001` tercatat `dikembalikan|baik|2026-11-25` di `detail_transaksi.txt`
 - [x] A002 dan A003 tetap `dipinjam` di detail dan di `alat.txt`
 - [x] A001 kembali `baik|tersedia`
 - [x] layar: 3 alat tersedia (A001, A004, A005) dan 2 alat dipinjam (A002, A003)
@@ -282,15 +284,15 @@ A005|Kabel HDMI|perangkat multimedia|baik|tersedia
 **Isi `detail_transaksi.txt`:**
 
 ```text
-T001|A001|dikembalikan|baik|2026-11-11
-T001|A002|dikembalikan|rusak ringan|2026-11-11
-T001|A003|dikembalikan|rusak berat|2026-11-11
+T001|A001|dikembalikan|baik|2026-11-25
+T001|A002|dikembalikan|rusak ringan|2026-11-25
+T001|A003|dikembalikan|rusak berat|2026-11-25
 ```
 
 **Isi `transaksi.txt`:**
 
 ```text
-T001|M001|2026-11-11|2026-11-18|selesai
+T001|M001|2026-11-25|2026-12-02|selesai
 ```
 
 **Isi `mahasiswa.txt`:**
@@ -342,6 +344,7 @@ mahasiswa.txt          identik: True
 alat.txt               identik: True
 transaksi.txt          identik: True
 detail_transaksi.txt   identik: True
+pemeliharaan.txt       identik: True
 ```
 
 **Isi `mahasiswa.txt` sesudah semua langkah:**
@@ -357,7 +360,7 @@ M003|Citra Lestari|-|tidak aktif
 - [x] M002 (transaksi aktif) ditolak dihapus
 - [x] alat A004 (sedang dipinjam) ditolak dihapus
 - [x] M001 (hanya riwayat) ditolak dihapus agar riwayat transaksi tetap valid (Aturan 8)
-- [x] keempat file data identik sebelum dan sesudah penolakan
+- [x] semua file data identik sebelum dan sesudah penolakan
 - [x] mahasiswa tanpa transaksi (M009) dapat dihapus, jadi larangan hanya berlaku bila ada transaksi
 - [x] pinjaman M002 diterima sebelum percobaan hapus
 - [x] program berakhir normal
@@ -374,14 +377,14 @@ M003|Citra Lestari|-|tidak aktif
 
 ```text
 Daftar transaksi (3 data)
-1. T001 | M001 | pinjam 2026-11-11 | batas 2026-11-18 | selesai
-     - A001: dikembalikan (baik, 2026-11-11)
-     - A002: dikembalikan (rusak ringan, 2026-11-11)
-     - A003: dikembalikan (rusak berat, 2026-11-11)
-2. T002 | M002 | pinjam 2026-11-11 | batas 2026-11-18 | dipinjam
+1. T001 | M001 | pinjam 2026-11-25 | batas 2026-12-02 | selesai
+     - A001: dikembalikan (baik, 2026-11-25)
+     - A002: dikembalikan (rusak ringan, 2026-11-25)
+     - A003: dikembalikan (rusak berat, 2026-11-25)
+2. T002 | M002 | pinjam 2026-11-25 | batas 2026-12-02 | dipinjam
      - A004: dipinjam
-3. T003 | M003 | pinjam 2026-11-11 | batas 2026-11-18 | sebagian dikembalikan
-     - A001: dikembalikan (baik, 2026-11-11)
+3. T003 | M003 | pinjam 2026-11-25 | batas 2026-12-02 | sebagian dikembalikan
+     - A001: dikembalikan (baik, 2026-11-25)
      - A005: dipinjam
 
 Daftar mahasiswa (3 data)
@@ -404,14 +407,15 @@ mahasiswa.txt          3 baris -> 3 baris | isi identik: True
 alat.txt               5 baris -> 5 baris | isi identik: True
 transaksi.txt          3 baris -> 3 baris | isi identik: True
 detail_transaksi.txt   6 baris -> 6 baris | isi identik: True
+pemeliharaan.txt       0 baris -> 0 baris | isi identik: True
 ```
 
 **Isi `transaksi.txt` sesudah jalan ulang:**
 
 ```text
-T001|M001|2026-11-11|2026-11-18|selesai
-T002|M002|2026-11-11|2026-11-18|dipinjam
-T003|M003|2026-11-11|2026-11-18|sebagian dikembalikan
+T001|M001|2026-11-25|2026-12-02|selesai
+T002|M002|2026-11-25|2026-12-02|dipinjam
+T003|M003|2026-11-25|2026-12-02|sebagian dikembalikan
 ```
 
 **Pemeriksaan otomatis**
@@ -430,7 +434,7 @@ T003|M003|2026-11-11|2026-11-18|sebagian dikembalikan
 
 ## Skenario 8: File data dihapus atau dikosongkan
 
-**Langkah:** untuk setiap file (`mahasiswa.txt`, `alat.txt`, `transaksi.txt`, `detail_transaksi.txt`, `log.txt`) dilakukan dua percobaan terpisah pada salinan data dari Skenario 7: file dihapus, lalu file dikosongkan (0 byte). Tiap percobaan menjalankan program dan langsung keluar (menu 0). Lalu, setelah `alat.txt` dihapus, menambah alat `A100` lewat menu.
+**Langkah:** untuk setiap file (`mahasiswa.txt`, `alat.txt`, `transaksi.txt`, `detail_transaksi.txt`, `pemeliharaan.txt`, `log.txt`) dilakukan dua percobaan terpisah pada salinan data dari Skenario 7: file dihapus, lalu file dikosongkan (0 byte). Tiap percobaan menjalankan program dan langsung keluar (menu 0). Lalu, setelah `alat.txt` dihapus, menambah alat `A100` lewat menu.
 
 | File | Tindakan | Kode keluar | Traceback | File ada setelah dijalankan | Jumlah `[PERINGATAN]` |
 |---|---|---|---|---|---|
@@ -442,17 +446,19 @@ T003|M003|2026-11-11|2026-11-18|sebagian dikembalikan
 | `transaksi.txt` | dikosongkan | 0 | tidak | ya | 10 |
 | `detail_transaksi.txt` | dihapus | 0 | tidak | ya | 7 |
 | `detail_transaksi.txt` | dikosongkan | 0 | tidak | ya | 7 |
+| `pemeliharaan.txt` | dihapus | 0 | tidak | ya | 0 |
+| `pemeliharaan.txt` | dikosongkan | 0 | tidak | ya | 0 |
 | `log.txt` | dihapus | 0 | tidak | ya | 0 |
 | `log.txt` | dikosongkan | 0 | tidak | ya | 0 |
 
-Jumlah `[PERINGATAN]` berbeda-beda karena program membuang baris yang rujukannya hilang (Aturan 8) dan memperbaiki status alat atau mahasiswa yang bergantung padanya. `log.txt` tidak dirujuk file lain, jadi tidak menimbulkan peringatan.
+Jumlah `[PERINGATAN]` berbeda-beda karena baris yang rujukannya hilang dipindahkan ke `data/karantina/` (Aturan 8) dan status alat atau mahasiswa yang bergantung padanya disesuaikan. `log.txt` tidak dirujuk file lain, jadi tidak menimbulkan peringatan.
 
 **Menambah data setelah `alat.txt` dihapus (layar dan isi file):**
 
 ```text
-[PERINGATAN] detail_transaksi.txt: alat A001 pada transaksi T001 tidak ditemukan, baris dilewati
-[PERINGATAN] detail_transaksi.txt: alat A002 pada transaksi T001 tidak ditemukan, baris dilewati
-[PERINGATAN] detail_transaksi.txt: alat A003 pada transaksi T001 tidak ditemukan, baris dilewati
+[PERINGATAN] detail_transaksi.txt: alat A001 pada transaksi T001 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/detail_transaksi.txt: T001|A001|dikembalikan|baik|2026-11-25
+[PERINGATAN] detail_transaksi.txt: alat A002 pada transaksi T001 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/detail_transaksi.txt: T001|A002|dikembalikan|rusak ringan|2026-11-25
+[PERINGATAN] detail_transaksi.txt: alat A003 pada transaksi T001 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/detail_transaksi.txt: T001|A003|dikembalikan|rusak berat|2026-11-25
 [OK] Alat berhasil ditambahkan.
 ```
 
@@ -460,24 +466,29 @@ Jumlah `[PERINGATAN]` berbeda-beda karena program membuang baris yang rujukannya
 A100|Osiloskop|pengukuran|baik|tersedia
 ```
 
-**Dampak yang perlu diketahui:** baris yang dibuang saat memuat tidak ikut tersimpan lagi. Contoh pada salinan terpisah, `mahasiswa.txt` dihapus saat masih ada 3 transaksi:
+**Data yang rujukannya hilang tidak dibuang.** Contoh pada salinan terpisah, `mahasiswa.txt` dihapus saat masih ada 3 transaksi:
 
 ```text
-[PERINGATAN] transaksi.txt: NIM M001 pada transaksi T001 tidak ditemukan, baris dilewati
-[PERINGATAN] transaksi.txt: NIM M002 pada transaksi T002 tidak ditemukan, baris dilewati
-[PERINGATAN] transaksi.txt: NIM M003 pada transaksi T003 tidak ditemukan, baris dilewati
+[PERINGATAN] transaksi.txt: NIM M001 pada transaksi T001 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/transaksi.txt: T001|M001|2026-11-25|2026-12-02|selesai
+[PERINGATAN] transaksi.txt: NIM M002 pada transaksi T002 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/transaksi.txt: T002|M002|2026-11-25|2026-12-02|dipinjam
+[PERINGATAN] transaksi.txt: NIM M003 pada transaksi T003 tidak ditemukan; baris dilewati dan dipindahkan ke karantina/transaksi.txt: T003|M003|2026-11-25|2026-12-02|sebagian dikembalikan
 ...
+[INFO] 9 baris bermasalah dipindahkan ke folder data\karantina agar tidak hilang.
+
 transaksi.txt sebelum: 3 baris | sesudah program ditutup: 0 baris
+karantina/transaksi.txt: 3 baris | karantina/detail_transaksi.txt: 6 baris
 ```
 
-Jadi menghapus `mahasiswa.txt` atau `alat.txt` tidak membuat program error, tetapi transaksi yang merujuk data itu hilang dari file. Salin folder `data/` terlebih dahulu sebelum menguji skenario ini.
+Transaksi itu tidak dimuat karena NIM-nya tidak ada (Aturan 8), tetapi barisnya tersimpan utuh di `data/karantina/` sehingga dapat dipulihkan. Alat yang tadinya dipinjam ditandai `tidak tersedia` (bukan `tersedia`) sampai diperiksa petugas, jadi tidak bisa dipinjam orang lain.
 
 **Pemeriksaan otomatis**
 
-- [x] semua 10 percobaan berakhir dengan kode keluar 0
+- [x] semua 12 percobaan berakhir dengan kode keluar 0
 - [x] tidak ada traceback pada satupun percobaan
 - [x] file yang dihapus dibuat ulang otomatis pada semua percobaan
 - [x] program tetap dapat dipakai: alat `A100` tersimpan di `alat.txt` yang dibuat ulang
+- [x] transaksi yang rujukannya hilang tersimpan utuh di `data/karantina/` (tidak ada data yang hilang)
+- [x] alat yang sedang dipinjam tidak berubah menjadi `tersedia`
 
 **Hasil: LULUS**
 
@@ -498,9 +509,9 @@ T777|M001|2026-11-01
 **Layar (peringatan dan operasi sesudahnya):**
 
 ```text
-[PERINGATAN] alat.txt: baris 6 dilewati (ada 3 kolom, seharusnya 5): A777|Kolom Kurang|perangkat jaringan
-[PERINGATAN] mahasiswa.txt: baris 4 dilewati (ada 6 kolom, seharusnya 4): M777|Terlalu|Banyak|Kolom|tidak aktif|lebih
-[PERINGATAN] transaksi.txt: baris 4 dilewati (ada 3 kolom, seharusnya 5): T777|M001|2026-11-01
+[PERINGATAN] alat.txt: baris 6 tidak sesuai format (ada 3 kolom, seharusnya 5); baris dilewati dan dipindahkan ke karantina/alat.txt: A777|Kolom Kurang|perangkat jaringan
+[PERINGATAN] mahasiswa.txt: baris 4 tidak sesuai format (ada 6 kolom, seharusnya 4); baris dilewati dan dipindahkan ke karantina/mahasiswa.txt: M777|Terlalu|Banyak|Kolom|tidak aktif|lebih
+[PERINGATAN] transaksi.txt: baris 4 tidak sesuai format (ada 3 kolom, seharusnya 5); baris dilewati dan dipindahkan ke karantina/transaksi.txt: T777|M001|2026-11-01
 
 Daftar alat (5 data)
 1. A001 | Kamera Digital | kategori: perangkat multimedia | kondisi: baik | status: tersedia
@@ -512,7 +523,18 @@ Daftar alat (5 data)
 [OK] Alat berhasil ditambahkan.
 ```
 
-**Catatan perilaku:** baris rusak dilewati saat dimuat dan tidak ikut tersimpan. Setelah program menyimpan, baris rusak tersebut hilang dari file (lihat pemeriksaan di bawah). Bila baris itu masih ingin dipertahankan, salin dulu sebelum menjalankan program.
+**Catatan perilaku:** baris rusak dilewati saat dimuat lalu dipindahkan ke `data/karantina/<nama file>`, sehingga tidak hilang walaupun file utama ditulis ulang. File utama langsung disamakan dengan data di program (Aturan 7), jadi peringatan yang sama tidak muncul lagi saat program dijalankan berikutnya.
+
+**Isi folder `data/karantina/`:**
+
+```text
+# alat.txt
+A777|Kolom Kurang|perangkat jaringan
+# mahasiswa.txt
+M777|Terlalu|Banyak|Kolom|tidak aktif|lebih
+# transaksi.txt
+T777|M001|2026-11-01
+```
 
 **Isi `alat.txt` sesudah program ditutup:**
 
@@ -533,6 +555,84 @@ A200|Sensor Suhu|sensor|baik|tersedia
 - [x] semua baris valid sebelumnya tetap ada di ketiga file
 - [x] baris rusak tidak tersimpan kembali ke file
 - [x] `A200` tersimpan di `alat.txt`
+- [x] ketiga baris rusak tersimpan utuh di `data/karantina/`
+- [x] saat dijalankan ulang tidak ada `[PERINGATAN]` lagi dan isi karantina tidak bertambah
+- [x] program berakhir normal
+
+**Hasil: LULUS**
+
+---
+
+## Tambahan: Tantangan B, C, dan F
+
+**Langkah:** pada salinan data sampel (`data_sampel/`): menu 12 (Statistik peminjaman); menu 13 (Pemeliharaan alat) untuk memasukkan `A004` (rusak ringan) ke pemeliharaan, menyelesaikan pemeliharaan `A009`, lalu menampilkan riwayat pemeliharaan; menu 14 (Ekspor laporan) untuk membuat ketiga laporan (riwayat untuk `M003`).
+
+**Layar statistik:**
+
+```text
+Jumlah transaksi aktif   : 2
+Jumlah transaksi selesai : 1
+
+Alat yang paling sering dipinjam (5 data)
+1. A001 Multimeter Digital (1 kali)
+2. A002 Osiloskop (1 kali)
+3. A003 Power Supply DC (1 kali)
+4. A004 Breadboard (1 kali)
+5. A005 Arduino Uno (1 kali)
+
+Mahasiswa yang paling sering meminjam (3 data)
+1. M001 Andi Pratama (1 transaksi)
+2. M002 Budi Santoso (1 transaksi)
+3. M003 Citra Lestari (1 transaksi)
+```
+
+**Layar pemeliharaan dan laporan:**
+
+```text
+[OK] Alat masuk daftar pemeliharaan.
+[OK] Pemeliharaan selesai, alat kembali tersedia.
+[OK] Laporan disimpan di laporan\alat_dipinjam_2026-11-25.txt
+[OK] Laporan disimpan di laporan\alat_rusak_2026-11-25.txt
+[OK] Laporan disimpan di laporan\riwayat_M003_2026-11-25.txt
+
+Riwayat pemeliharaan (3 data)
+1. P001 | A006 Solder Station | masuk 2026-10-20 | selesai 2026-10-24
+2. P002 | A009 Function Generator | masuk 2026-11-06 | selesai 2026-11-25
+3. P003 | A004 Breadboard | masuk 2026-11-25 | dalam perbaikan
+```
+
+**Isi `pemeliharaan.txt` sesudahnya:**
+
+```text
+P001|A006|2026-10-20|2026-10-24|selesai
+P002|A009|2026-11-06|2026-11-25|selesai
+P003|A004|2026-11-25|-|dalam perbaikan
+```
+
+**Isi laporan `laporan/alat_dipinjam_2026-11-25.txt`:**
+
+```text
+LAPORAN ALAT YANG SEDANG DIPINJAM
+Dibuat: 2026-11-25 22:54
+======================================================================
+
+No  Kode  Nama Alat           Peminjam            Transaksi  Batas Kembali  Keterangan
+---------------------------------------------------------------------------------------------
+1   A001  Multimeter Digital  M001 Andi Pratama   T001       2026-11-09     terlambat 16 hari
+2   A002  Osiloskop           M001 Andi Pratama   T001       2026-11-09     terlambat 16 hari
+3   A005  Arduino Uno         M003 Citra Lestari  T003       2026-11-10     terlambat 15 hari
+---------------------------------------------------------------------------------------------
+Jumlah: 3 alat
+```
+
+**Pemeriksaan otomatis**
+
+- [x] statistik menampilkan 2 transaksi aktif dan 1 transaksi selesai
+- [x] `A004` masuk pemeliharaan dengan ID baru `P003`
+- [x] pemeliharaan `P002` selesai dan `A009` kembali `baik` serta `tersedia`
+- [x] ketiga laporan dibuat di folder `laporan/`
+- [x] laporan alat dipinjam memuat 3 alat beserta peminjamnya
+- [x] data mahasiswa dan transaksi tidak berubah karena statistik/laporan hanya membaca data
 - [x] program berakhir normal
 
 **Hasil: LULUS**
