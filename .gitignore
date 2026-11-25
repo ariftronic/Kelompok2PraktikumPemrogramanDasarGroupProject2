@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Data hasil program yang tidak perlu di-commit
+data/karantina/
+laporan/

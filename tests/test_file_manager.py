@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from app.file_manager import FileManager, FileManagerError
 from app.logger import Logger
-from app.konstanta import FILE_MAHASISWA, FILE_ALAT, FILE_LOG
+from app.konstanta import FILE_MAHASISWA, FILE_ALAT, FILE_LOG, FILE_TRANSAKSI, FILE_DETAIL_TRANSAKSI
 
 class DasarUji(unittest.TestCase):
 
@@ -101,6 +101,57 @@ class UjiTulis(DasarUji):
     def test_tidak_ada_file_sementara_tersisa(self):
         self.fm.tulis_baris(FILE_MAHASISWA, [['M001', 'Andi', '0812', 'aktif']])
         self.assertFalse(any((n.endswith('.tmp') for n in os.listdir(self.folder))))
+
+    def test_tulis_banyak_menulis_semua_file(self):
+        self.fm.tulis_banyak([(FILE_MAHASISWA, [['M001', 'Andi', '0812', 'aktif']]), (FILE_ALAT, [['A001', 'Kamera', 'multimedia', 'baik', 'tersedia']])])
+        self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi|0812|aktif\n')
+        self.assertEqual(self.isi(FILE_ALAT), 'A001|Kamera|multimedia|baik|tersedia\n')
+
+    def test_tulis_banyak_gagal_tidak_mengubah_file_apa_pun(self):
+        self.fm.tulis_baris(FILE_TRANSAKSI, [['T001', 'M001', '2026-11-01', '2026-11-08', 'dipinjam']])
+        self.fm.tulis_baris(FILE_DETAIL_TRANSAKSI, [['T001', 'A001', 'dipinjam', '-', '-']])
+        sebelum = (self.isi(FILE_TRANSAKSI), self.isi(FILE_DETAIL_TRANSAKSI))
+        # folder bernama sama dengan file sementara membuat penulisan file kedua gagal
+        os.mkdir(os.path.join(self.folder, FILE_DETAIL_TRANSAKSI + '.tmp'))
+        with self.assertRaises(FileManagerError):
+            self.fm.tulis_banyak([(FILE_TRANSAKSI, [['T002', 'M001', '2026-11-02', '2026-11-09', 'dipinjam']]), (FILE_DETAIL_TRANSAKSI, [['T002', 'A002', 'dipinjam', '-', '-']])])
+        self.assertEqual((self.isi(FILE_TRANSAKSI), self.isi(FILE_DETAIL_TRANSAKSI)), sebelum)
+        self.assertFalse(os.path.exists(os.path.join(self.folder, FILE_TRANSAKSI + '.tmp')))
+
+    def test_tulis_banyak_nilai_tidak_valid_tidak_menulis_apa_pun(self):
+        self.fm.tulis_baris(FILE_MAHASISWA, [['M001', 'Andi', '0812', 'aktif']])
+        sebelum = self.isi(FILE_MAHASISWA)
+        with self.assertRaises(ValueError):
+            self.fm.tulis_banyak([(FILE_MAHASISWA, [['M002', 'Budi', '0856', 'aktif']]), (FILE_ALAT, [['A|001', 'Kamera', 'multimedia', 'baik', 'tersedia']])])
+        self.assertEqual(self.isi(FILE_MAHASISWA), sebelum)
+        self.assertFalse(os.path.exists(os.path.join(self.folder, FILE_ALAT)))
+
+    def test_tulis_teks_mempertahankan_spasi_dan_pemisah(self):
+        path = self.fm.tulis_teks('laporan_uji.txt', ['JUDUL', '  A001 | Kamera', ''])
+        self.assertEqual(path, os.path.join(self.folder, 'laporan_uji.txt'))
+        self.assertEqual(self.isi('laporan_uji.txt'), 'JUDUL\n  A001 | Kamera\n\n')
+
+class UjiKarantina(DasarUji):
+
+    def test_baris_salah_format_dipindahkan_ke_karantina(self):
+        self.tulis_mentah(FILE_MAHASISWA, 'M001|Andi|0812345678|aktif\nRUSAK|dua\n')
+        self.assertEqual(self.fm.baca_baris(FILE_MAHASISWA), [['M001', 'Andi', '0812345678', 'aktif']])
+        self.assertEqual(self.fm.baca_karantina(FILE_MAHASISWA), ['RUSAK|dua'])
+        self.assertEqual(self.fm.jumlah_karantina, 1)
+        self.assertEqual(len(self.fm.daftar_peringatan), 1)
+        self.assertIn('karantina/mahasiswa.txt', self.fm.daftar_peringatan[0])
+
+    def test_tanpa_baris_rusak_folder_karantina_tidak_dibuat(self):
+        self.tulis_mentah(FILE_MAHASISWA, 'M001|Andi|0812345678|aktif\n')
+        self.fm.baca_baris(FILE_MAHASISWA)
+        self.assertEqual(self.fm.baca_karantina(FILE_MAHASISWA), [])
+        self.assertFalse(os.path.exists(os.path.join(self.folder, 'karantina')))
+
+    def test_karantina_menambah_tanpa_menghapus_isi_lama(self):
+        self.fm.karantina(FILE_ALAT, 'A001|rusak', 'uji pertama')
+        self.fm.karantina(FILE_ALAT, 'A002|rusak', 'uji kedua')
+        self.assertEqual(self.fm.baca_karantina(FILE_ALAT), ['A001|rusak', 'A002|rusak'])
+        self.assertEqual(self.fm.jumlah_karantina, 2)
 
 class UjiLog(DasarUji):
 

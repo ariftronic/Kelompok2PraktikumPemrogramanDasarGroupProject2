@@ -1,3 +1,4 @@
+import contextlib
 import io
 import os
 import shutil
@@ -5,15 +6,16 @@ import tempfile
 import unittest
 from unittest import mock
 from app.file_manager import FileManager, FileManagerError
-from app.konstanta import FILE_ALAT, FILE_DETAIL_TRANSAKSI, FILE_LOG, FILE_MAHASISWA, FILE_TRANSAKSI, KONDISI_BAIK, KONDISI_RUSAK_BERAT, KONDISI_RUSAK_RINGAN, MHS_AKTIF, MHS_TIDAK_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA, STATUS_TIDAK_TERSEDIA, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI
+from app.konstanta import FILE_ALAT, FILE_DETAIL_TRANSAKSI, FILE_LOG, FILE_MAHASISWA, FILE_PEMELIHARAAN, FILE_TRANSAKSI, PML_PROSES, PML_SELESAI, KONDISI_BAIK, KONDISI_RUSAK_BERAT, KONDISI_RUSAK_RINGAN, MHS_AKTIF, MHS_TIDAK_AKTIF, STATUS_DIPINJAM, STATUS_TERSEDIA, STATUS_TIDAK_TERSEDIA, TRX_DIPINJAM, TRX_SEBAGIAN, TRX_SELESAI
 from app.logger import Logger
 from app.manager.manager_alat import ManagerAlat
 from app.manager.manager_mahasiswa import ManagerMahasiswa
+from app.manager.manager_pemeliharaan import ManagerPemeliharaan
 from app.manager.manager_pengembalian import ManagerPengembalian
 from app.manager.manager_transaksi import ManagerTransaksi
 from app.models.transaksi import DetailTransaksi, Transaksi
 DIR_SAMPEL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data_sampel')
-FILE_DATA = (FILE_MAHASISWA, FILE_ALAT, FILE_TRANSAKSI, FILE_DETAIL_TRANSAKSI)
+FILE_DATA = (FILE_MAHASISWA, FILE_ALAT, FILE_TRANSAKSI, FILE_DETAIL_TRANSAKSI, FILE_PEMELIHARAAN)
 
 class Aplikasi:
 
@@ -24,12 +26,15 @@ class Aplikasi:
         self.mahasiswa = ManagerMahasiswa(self.fm, self.logger)
         self.transaksi = ManagerTransaksi(self.fm, self.logger, self.mahasiswa, self.alat)
         self.pengembalian = ManagerPengembalian(self.fm, self.logger, self.transaksi, self.alat)
+        self.pemeliharaan = ManagerPemeliharaan(self.fm, self.logger, self.alat, self.transaksi)
         self.alat.sambungkan_transaksi(self.transaksi)
+        self.alat.sambungkan_pemeliharaan(self.pemeliharaan)
         self.mahasiswa.sambungkan_transaksi(self.transaksi)
         self.fm.pastikan_semua_file()
         self.alat.muat()
         self.mahasiswa.muat()
         self.transaksi.muat()
+        self.pemeliharaan.muat()
 
     def status_alat(self, kode):
         return self.alat.ambil(kode).status
@@ -53,6 +58,23 @@ class DasarFolder(unittest.TestCase):
 
     def semua_file(self):
         return tuple((self.isi(n) for n in FILE_DATA))
+
+    def salin_sampel(self):
+        for nama in FILE_DATA:
+            shutil.copy(os.path.join(DIR_SAMPEL, nama), self.folder)
+
+    def karantina(self, nama_file):
+        return FileManager(direktori=self.folder).baca_karantina(nama_file)
+
+    @contextlib.contextmanager
+    def penulisan_gagal(self, nama_file):
+        # folder bernama sama dengan file sementara membuat penulisan file itu benar-benar gagal
+        path = os.path.join(self.folder, nama_file + '.tmp')
+        os.mkdir(path)
+        try:
+            yield
+        finally:
+            os.rmdir(path)
 
 class DasarUji(DasarFolder):
 
@@ -179,7 +201,9 @@ class UjiSkenarioWajib(DasarUji):
             with open(os.path.join(self.folder, nama), 'a', encoding='utf-8') as f:
                 f.write('RUSAK|hanya dua kolom\n')
         baru = Aplikasi(self.folder)
-        self.assertEqual(len(baru.fm.daftar_peringatan), 4)
+        self.assertEqual(len(baru.fm.daftar_peringatan), 5)
+        for nama in FILE_DATA:
+            self.assertEqual(self.karantina(nama), ['RUSAK|hanya dua kolom'], nama)
         self.assertEqual(len(baru.mahasiswa.semua()), 2)
         self.assertEqual(len(baru.transaksi.semua()), 1)
         self.assertEqual(baru.transaksi.buat('M002', ['A002']).id_transaksi, 'T002')
@@ -207,18 +231,19 @@ class UjiIsiBarisTidakValid(DasarUji):
             DetailTransaksi.dari_baris(['T001', 'A001', 'dipinjam', 'baik', '-'])
         DetailTransaksi.dari_baris(['T001', 'A001', 'dikembalikan', 'baik', '2026-11-02'])
 
-    def test_batas_kembali_harus_dalam_rentang_tujuh_hari(self):
-        with self.assertRaises(ValueError):
-            Transaksi.dari_baris(['T001', 'M001', '2026-11-01', '2026-11-09', 'dipinjam'])
-        with self.assertRaises(ValueError):
-            Transaksi.dari_baris(['T001', 'M001', '2026-11-10', '2026-11-09', 'dipinjam'])
-        Transaksi.dari_baris(['T001', 'M001', '2026-11-01', '2026-11-08', 'dipinjam'])
+    def test_batas_kembali_lama_tetap_dimuat_dan_tidak_boleh_mundur(self):
+        # batas 7 hari hanya berlaku saat transaksi dibuat; data lama tetap dimuat walau aturannya berubah
         self.tulis_mentah(FILE_TRANSAKSI, 'T001|M001|2026-11-01|2026-12-15|dipinjam\n')
         self.tulis_mentah(FILE_DETAIL_TRANSAKSI, 'T001|A001|dipinjam|-|-\n')
         baru = Aplikasi(self.folder)
-        self.assertEqual(baru.transaksi.semua(), [])
-        self.assertEqual(len(baru.fm.daftar_peringatan), 2)
-        self.assertEqual(baru.status_alat('A001'), STATUS_TERSEDIA)
+        self.assertEqual([t.id_transaksi for t in baru.transaksi.semua()], ['T001'])
+        self.assertEqual(baru.status_alat('A001'), STATUS_DIPINJAM)
+        with self.assertRaises(ValueError):
+            Transaksi.dari_baris(['T001', 'M001', '2026-11-10', '2026-11-09', 'dipinjam'])
+
+    def test_tanggal_transaksi_tidak_baku_ditolak(self):
+        with self.assertRaises(ValueError):
+            Transaksi.dari_baris(['T001', 'M001', '2026-11-2', '2026-11-08', 'dipinjam'])
 
 class UjiKonsistensiAntarFile(DasarUji):
 
@@ -230,11 +255,13 @@ class UjiKonsistensiAntarFile(DasarUji):
         with self.assertRaises(ValueError):
             baru.transaksi.buat('M002', ['A001'])
 
-    def test_alat_tercatat_dipinjam_tanpa_transaksi_menjadi_tersedia(self):
+    def test_alat_tercatat_dipinjam_tanpa_transaksi_ditahan_tidak_tersedia(self):
         self.tulis_mentah(FILE_ALAT, self.isi(FILE_ALAT).replace('A002|Tripod|perangkat multimedia|baik|tersedia', 'A002|Tripod|perangkat multimedia|baik|dipinjam'))
         baru = Aplikasi(self.folder)
-        self.assertEqual(baru.status_alat('A002'), STATUS_TERSEDIA)
+        self.assertEqual(baru.status_alat('A002'), STATUS_TIDAK_TERSEDIA)
         self.assertEqual(len(baru.fm.daftar_peringatan), 1)
+        baru.alat.edit('A002', kondisi=KONDISI_BAIK)
+        self.assertEqual(baru.status_alat('A002'), STATUS_TERSEDIA)
 
     def test_status_transaksi_mengikuti_detail(self):
         self.app.transaksi.buat('M001', ['A001', 'A002'])
@@ -244,21 +271,16 @@ class UjiKonsistensiAntarFile(DasarUji):
         self.assertEqual(baru.transaksi.ambil('T001').status, TRX_SEBAGIAN)
         self.assertTrue(baru.transaksi.punya_transaksi_aktif('M001'))
 
-    def test_transaksi_tanpa_alat_dibuang_agar_tidak_memblokir_mahasiswa(self):
+    def test_transaksi_tanpa_alat_dikarantina_agar_tidak_memblokir_mahasiswa(self):
         self.tulis_mentah(FILE_TRANSAKSI, 'T001|M001|2026-11-01|2026-11-08|dipinjam\nT002|M001|2026-11-02|2026-11-09|dipinjam\n')
         self.tulis_mentah(FILE_DETAIL_TRANSAKSI, '')
         baru = Aplikasi(self.folder)
         self.assertEqual(baru.transaksi.semua(), [])
-        self.assertEqual(baru.transaksi.buat('M001', ['A001']).id_transaksi, 'T001')
+        self.assertEqual(len(self.karantina(FILE_TRANSAKSI)), 2)
+        self.assertEqual(baru.transaksi.buat('M001', ['A001']).id_transaksi, 'T003')
 
-    def test_gagal_menulis_transaksi_setelah_alat_tertulis_memulihkan_status_alat(self):
-        asli = self.app.fm.tulis_baris
-
-        def gagal(nama_file, baris):
-            if nama_file == FILE_TRANSAKSI:
-                raise FileManagerError('disk penuh')
-            return asli(nama_file, baris)
-        with mock.patch.object(self.app.fm, 'tulis_baris', side_effect=gagal):
+    def test_gagal_menulis_transaksi_tidak_mengubah_status_alat(self):
+        with self.penulisan_gagal(FILE_TRANSAKSI):
             with self.assertRaises(FileManagerError):
                 self.app.transaksi.buat('M001', ['A001'])
         self.assertEqual(self.app.status_alat('A001'), STATUS_TERSEDIA)
@@ -269,13 +291,7 @@ class UjiKonsistensiAntarFile(DasarUji):
 
     def test_gagal_menulis_transaksi_saat_pengembalian_dapat_diulang(self):
         self.app.transaksi.buat('M001', ['A001'])
-        asli = self.app.fm.tulis_baris
-
-        def gagal(nama_file, baris):
-            if nama_file == FILE_TRANSAKSI:
-                raise FileManagerError('disk penuh')
-            return asli(nama_file, baris)
-        with mock.patch.object(self.app.fm, 'tulis_baris', side_effect=gagal):
+        with self.penulisan_gagal(FILE_TRANSAKSI):
             with self.assertRaises(FileManagerError):
                 self.app.pengembalian.kembalikan('T001', 'A001', KONDISI_RUSAK_BERAT)
         self.assertEqual(self.app.transaksi.ambil('T001').status, TRX_DIPINJAM)
@@ -309,26 +325,11 @@ class UjiPerbaikanAnalisis(DasarUji):
 
     def test_gagal_simpan_pengembalian_memulihkan_kondisi_alat(self):
         self.app.transaksi.buat('M001', ['A001'])
-        asli = self.app.fm.tulis_baris
-
-        def gagal(nama_file, baris):
-            if nama_file == FILE_TRANSAKSI:
-                raise FileManagerError('disk penuh')
-            return asli(nama_file, baris)
-        with mock.patch.object(self.app.fm, 'tulis_baris', side_effect=gagal):
+        with self.penulisan_gagal(FILE_TRANSAKSI):
             with self.assertRaises(FileManagerError):
                 self.app.pengembalian.kembalikan('T001', 'A001', KONDISI_RUSAK_BERAT)
         self.assertEqual(self.app.alat.ambil('A001').kondisi, KONDISI_BAIK)
         self.assertIn('A001|Kamera|perangkat multimedia|baik|dipinjam', self.isi(FILE_ALAT))
-
-    def _gagal_menulis(self, nama_target):
-        asli = self.app.fm.tulis_baris
-
-        def gagal(nama_file, baris):
-            if nama_file == nama_target:
-                raise FileManagerError('disk penuh')
-            return asli(nama_file, baris)
-        return mock.patch.object(self.app.fm, 'tulis_baris', side_effect=gagal)
 
     def test_status_aktif_mahasiswa_mengikuti_transaksi_aktif(self):
         def status(nim):
@@ -365,7 +366,7 @@ class UjiPerbaikanAnalisis(DasarUji):
         self.assertEqual(baru.mahasiswa.ambil('M002').status_aktif, MHS_AKTIF)
 
     def test_gagal_menyimpan_transaksi_memulihkan_status_aktif_mahasiswa(self):
-        with self._gagal_menulis(FILE_TRANSAKSI):
+        with self.penulisan_gagal(FILE_TRANSAKSI):
             with self.assertRaises(FileManagerError):
                 self.app.transaksi.buat('M001', ['A001'])
         self.assertEqual(self.app.mahasiswa.ambil('M001').status_aktif, MHS_TIDAK_AKTIF)
@@ -373,18 +374,19 @@ class UjiPerbaikanAnalisis(DasarUji):
 
     def test_gagal_menyimpan_pengembalian_memulihkan_status_aktif_mahasiswa(self):
         self.app.transaksi.buat('M001', ['A001'])
-        with self._gagal_menulis(FILE_TRANSAKSI):
+        with self.penulisan_gagal(FILE_TRANSAKSI):
             with self.assertRaises(FileManagerError):
                 self.app.pengembalian.kembalikan('T001', 'A001', KONDISI_BAIK)
         self.assertEqual(self.app.mahasiswa.ambil('M001').status_aktif, MHS_AKTIF)
         self.assertEqual(self.isi(FILE_MAHASISWA), 'M001|Andi|081234567890|aktif\nM002|Budi|-|tidak aktif\n')
 
-    def test_status_alat_tidak_konsisten_dengan_kondisi_diperbaiki(self):
+    def test_status_alat_hanya_dikoreksi_ke_arah_aman(self):
+        # alat rusak yang tercatat tersedia dikoreksi; alat yang ditahan tidak otomatis dijadikan tersedia
         self.tulis_mentah(FILE_ALAT, 'A001|Kamera|umum|rusak berat|tersedia\nA002|Tripod|umum|baik|tidak tersedia\n')
         baru = Aplikasi(self.folder)
         self.assertEqual(baru.status_alat('A001'), STATUS_TIDAK_TERSEDIA)
-        self.assertEqual(baru.status_alat('A002'), STATUS_TERSEDIA)
-        self.assertEqual(len(baru.fm.daftar_peringatan), 2)
+        self.assertEqual(baru.status_alat('A002'), STATUS_TIDAK_TERSEDIA)
+        self.assertEqual(len(baru.fm.daftar_peringatan), 1)
         with self.assertRaises(ValueError):
             baru.transaksi.buat('M001', ['A001'])
 
@@ -403,6 +405,62 @@ class UjiPerbaikanAnalisis(DasarUji):
         self.app.pengembalian.kembalikan('T001', 'A001', KONDISI_BAIK)
         self.assertIn('TERLAMBAT', self.isi(FILE_LOG))
 
+class UjiKarantinaDanPemulihan(DasarFolder):
+
+    def setUp(self):
+        super().setUp()
+        self.salin_sampel()
+
+    def rusakkan_tanggal_t003(self):
+        self.tulis_mentah(FILE_TRANSAKSI, self.isi(FILE_TRANSAKSI).replace('T003|M003|2026-11-03|', 'T003|M003|2026-13-45|'))
+
+    def test_mahasiswa_txt_hilang_transaksi_masuk_karantina_bukan_terhapus(self):
+        os.remove(os.path.join(self.folder, FILE_MAHASISWA))
+        app = Aplikasi(self.folder)
+        app.transaksi.simpan_semua(simpan_mahasiswa=True)
+        self.assertEqual(app.transaksi.semua(), [])
+        self.assertEqual(len(self.karantina(FILE_TRANSAKSI)), 3)
+        self.assertEqual(len(self.karantina(FILE_DETAIL_TRANSAKSI)), 5)
+        self.assertEqual([app.status_alat(k) for k in ('A001', 'A002', 'A005')], [STATUS_TIDAK_TERSEDIA] * 3)
+        self.assertNotIn('|dipinjam', self.isi(FILE_ALAT))
+
+    def test_baris_transaksi_rusak_tidak_membuat_alat_dipinjam_dua_kali(self):
+        self.rusakkan_tanggal_t003()
+        app = Aplikasi(self.folder)
+        self.assertEqual(app.status_alat('A005'), STATUS_TIDAK_TERSEDIA)
+        with self.assertRaises(ValueError):
+            app.transaksi.buat('M004', ['A005'])
+
+    def test_id_transaksi_di_karantina_tidak_dipakai_ulang(self):
+        self.rusakkan_tanggal_t003()
+        app = Aplikasi(self.folder)
+        app.transaksi.simpan_semua(simpan_mahasiswa=True)
+        self.assertEqual(app.transaksi.buat('M004', ['A006']).id_transaksi, 'T004')
+        baru = Aplikasi(self.folder)
+        self.assertEqual(baru.fm.daftar_peringatan, [])
+        self.assertEqual(baru.transaksi.buat('M005', ['A007']).id_transaksi, 'T005')
+
+    def test_alat_dipinjam_di_dua_transaksi_aktif_dikarantina(self):
+        with open(os.path.join(self.folder, FILE_TRANSAKSI), 'a', encoding='utf-8') as f:
+            f.write('T004|M004|2026-11-04|2026-11-11|dipinjam\n')
+        with open(os.path.join(self.folder, FILE_DETAIL_TRANSAKSI), 'a', encoding='utf-8') as f:
+            f.write('T004|A001|dipinjam|-|-\n')
+        app = Aplikasi(self.folder)
+        self.assertEqual([t.id_transaksi for t in app.transaksi.semua()], ['T001', 'T002', 'T003'])
+        self.assertEqual(self.karantina(FILE_DETAIL_TRANSAKSI), ['T004|A001|dipinjam|-|-'])
+        self.assertEqual(self.karantina(FILE_TRANSAKSI), ['T004|M004|2026-11-04|2026-11-11|dipinjam'])
+
+    def test_gagal_menulis_detail_tidak_mengubah_file_apa_pun(self):
+        app = Aplikasi(self.folder)
+        sebelum = self.semua_file()
+        with self.penulisan_gagal(FILE_DETAIL_TRANSAKSI):
+            with self.assertRaises(FileManagerError):
+                app.transaksi.buat('M004', ['A003'])
+        self.assertEqual(self.semua_file(), sebelum)
+        self.assertEqual(app.status_alat('A003'), STATUS_TERSEDIA)
+        self.assertEqual(len(app.transaksi.semua()), 3)
+        self.assertFalse(os.path.exists(os.path.join(self.folder, FILE_TRANSAKSI + '.tmp')))
+
 class UjiDataSampel(DasarFolder):
 
     def test_data_sampel_termuat_utuh_tanpa_peringatan(self):
@@ -416,6 +474,8 @@ class UjiDataSampel(DasarFolder):
         self.assertEqual([a.kode for a in app.alat.dipinjam()], ['A001', 'A002', 'A005'])
         self.assertTrue(app.transaksi.punya_transaksi_aktif('M003'))
         self.assertFalse(app.transaksi.punya_transaksi_aktif('M002'))
+        self.assertEqual([(p.id_pemeliharaan, p.kode_alat, p.status) for p in app.pemeliharaan.semua()], [('P001', 'A006', PML_SELESAI), ('P002', 'A009', PML_PROSES)])
+        self.assertEqual(app.status_alat('A009'), STATUS_TIDAK_TERSEDIA)
         with self.assertRaises(ValueError):
             app.mahasiswa.hapus('M001')
 if __name__ == '__main__':

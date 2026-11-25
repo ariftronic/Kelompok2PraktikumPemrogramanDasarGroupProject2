@@ -1,0 +1,10 @@
+LAPORAN ALAT YANG RUSAK
+Dibuat: 2026-11-25 13:46
+======================================================================
+
+No  Kode  Nama Alat           Kategori     Kondisi       Pemeliharaan
+-----------------------------------------------------------------------------------------
+1   A004  Breadboard          prototyping  rusak ringan  belum masuk pemeliharaan
+2   A009  Function Generator  pengukuran   rusak berat   dalam perbaikan sejak 2026-11-06
+-----------------------------------------------------------------------------------------
+Jumlah: 2 alat

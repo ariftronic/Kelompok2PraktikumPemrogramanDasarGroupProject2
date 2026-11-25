@@ -1,0 +1,14 @@
+LAPORAN RIWAYAT PEMINJAMAN MAHASISWA
+Dibuat: 2026-11-25 13:46
+======================================================================
+
+NIM              : M003
+Nama             : Citra Lestari
+Status peminjaman: aktif
+Jumlah transaksi : 1
+
+T003 | pinjam 2026-11-03 | batas 2026-11-10 | sebagian dikembalikan
+   - A004 Breadboard: dikembalikan 2026-11-05 (rusak ringan)
+   - A005 Arduino Uno: masih dipinjam
+
+----------------------------------------------------------------------

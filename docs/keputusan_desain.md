@@ -1,77 +1,139 @@
-# Dokumen Keputusan Desain (DRAF)
+# Dokumen Keputusan Desain
 
-Bagian bertanda **[ISI TIM]** hanya dapat dijawab oleh anggota kelompok karena menyangkut jalannya diskusi
-7 November. Bagian lain ditulis dari kode dan dokumen yang ada di repository, bukan dari riwayat diskusi.
+Kelompok 2, Proyek II Praktikum Pemrograman Dasar.
 
-## 1. Rancangan yang menjadi dasar solusi
+Gambar yang dirujuk:
 
-**[ISI TIM]** Rancangan anggota mana yang dijadikan dasar, dan mengapa.
+- rancangan individu: `docs/individu/` (UML Arif, Fatimah, Faris, dan Niken);
+- UML final hasil diskusi Tahap 1: `docs/final/UML Final Hasil Diskusi Kelompok 2.drawio.png`;
+- UML yang sesuai dengan program akhir: `docs/final/UML Implementasi Akhir Kelompok 2.drawio`.
 
-Bahan yang ada di repository: tiga UML individu di `docs/individu/` (Niken, Faris, dan Arif; UML Fatimah belum ada di repository),
-`docs/kontrak_antarmodul.md` (pembagian tanggung jawab antarmodul), dan UML final di `docs/final/`
-(`UML_Class_Diagram_Final.drawio` dan gambarnya `UML_Class_Diagram_Final.png`).
+## 1. Rancangan yang menjadi dasar solusi kelompok
 
-Perbandingan di bawah hanya merangkum isi ketiga gambar individu dan kode final sebagai bahan diskusi. Ini bukan catatan
-diskusi, jadi alasan pemilihan di atas tetap harus diisi tim.
+UML final hasil diskusi memakai struktur rancangan Arif. Rancangan Fatimah sejak awal hampir sama: `MenuApp`, tiga manager per
+entitas (`MahasiswaManager`, `AlatManager`, `TransaksiManager`), `FileHandler` untuk akses file, serta `Transaksi` yang berisi
+`DetailTransaksi`.
 
-| Aspek | Niken | Faris | Arif | Final (kode) |
+Alasan rancangan ini dipilih sebagai dasar:
+
+- satu manager untuk satu entitas, sehingga pekerjaan bisa dibagi per anggota dan tiap bagian bisa diuji sendiri;
+- akses file dipisah ke satu class, sesuai ketentuan bahwa kode baca/tulis tidak boleh ditulis berulang di setiap menu;
+- `Transaksi` memegang list `DetailTransaksi`, sehingga jumlah alat per transaksi tidak dibatasi (Aturan 3) dan pengembalian
+  per alat bisa dicatat (Aturan 4).
+
+## 2. Perbandingan rancangan individu
+
+| Aspek | Arif | Fatimah | Faris | Niken |
 |---|---|---|---|---|
-| Pemegang data dan aturan bisnis | satu class `PeminjamanService` | tiga manager: `MahasiswaManager`, `AlatManager`, `TransaksiManager` | tiga manager dengan nama yang sama seperti Faris | empat manager: `ManagerMahasiswa`, `ManagerAlat`, `ManagerTransaksi`, `ManagerPengembalian` |
-| Class akses file | `FileManager` | `FileManager` | `FileHandler` | `FileManager` |
-| Class transaksi | `TransaksiPeminjaman` berisi `ItemPeminjaman` | `Transaksi` berisi `DetailTransaksi` | `Transaksi` berisi `DetailTransaksi` | `Transaksi` berisi `DetailTransaksi` |
-| Konversi objek dan baris file | `dari_baris`, `ke_baris` | `from_line`, `to_line` | `dari_baris`, `ke_baris` | `dari_baris`, `ke_baris` |
-| Letak proses pengembalian | `proses_pengembalian` di service | `kembalikan_alat` di `TransaksiManager` | `proses_pengembalian` di `TransaksiManager` | `ManagerPengembalian.kembalikan` (class terpisah) |
-| Log aktivitas (Tantangan D) | tidak ada di diagram | tidak ada di diagram | tidak ada di diagram | `Logger` |
+| Pemegang data dan aturan bisnis | `MahasiswaManager`, `AlatManager`, `TransaksiManager` | sama dengan Arif | tiga manager dengan nama yang sama | satu class `PeminjamanService` |
+| Akses file | `FileHandler` | `FileHandler` | `FileManager` | `FileManager`, menyimpan daftar peringatan |
+| Isi transaksi | `Transaksi` berisi `DetailTransaksi` | sama | `Transaksi` berisi `DetailTransaksi` | `TransaksiPeminjaman` berisi `ItemPeminjaman` |
+| Konversi objek dan baris file | `dari_baris`, `ke_baris` | sama | `from_line`, `to_line` | `dari_baris`, `ke_baris` |
+| Proses pengembalian | `TransaksiManager.proses_pengembalian` | sama | `TransaksiManager.kembalikan_alat` | `PeminjamanService.proses_pengembalian` |
+| Pemeriksaan hapus (Aturan 6) | `TransaksiManager.hapus_mahasiswa` dan `hapus_alat` | sama | `hapus(nim, trx_mgr)` di manager masing-masing | method hapus di `PeminjamanService` |
+| Status aktif mahasiswa | atribut `status_aktif` | sama | `MahasiswaManager.set_status_aktif` | `Mahasiswa.set_status_aktif` |
+| Mode append | tidak ada | tidak ada | tidak ada | `FileManager.tambah_baris` |
 
-## 2. Bagian yang diambil atau dimodifikasi dari rancangan anggota lain
+## 3. Bagian yang diambil atau dimodifikasi dari rancangan anggota lain
 
-**[ISI TIM]** Bagian apa saja dari rancangan tiap anggota yang digabungkan atau diubah.
+Diambil dari rancangan Niken:
 
-## 3. Alasan memilih struktur class
+- nama dan peran `FileManager` sebagai satu-satunya class yang membuka file, termasuk daftar peringatan untuk baris yang
+  dilewati (`daftar_peringatan`, `catat_peringatan`);
+- `tambah_baris` untuk menulis dengan mode append, yang dipakai `Logger`;
+- alur penyimpanan: data dibaca saat program mulai, ditulis setiap ada perubahan, operasi yang ditolak tidak menyimpan, dan
+  semua data disimpan sekali lagi saat keluar;
+- `baris_detail()` pada `Transaksi` untuk menyusun isi `detail_transaksi.txt`.
+
+Diambil dari rancangan Faris:
+
+- `daftar_kategori()` pada `ManagerAlat`, dipakai menu saat menambah alat dengan kategori baru;
+- `riwayat_mahasiswa(nim)` untuk menu riwayat peminjaman;
+- pemeriksaan alat di transaksi aktif (`alat_dipakai_trx_aktif` menjadi `alat_dalam_transaksi_aktif`);
+- nama `tandai_dikembalikan(kondisi)` pada `Alat`;
+- status aktif mahasiswa yang diatur manager (`set_status_aktif` menjadi `perbarui_status_mahasiswa`).
+
+Dimodifikasi dari rancangan dasar:
+
+- `FileHandler` diganti `FileManager`, mengikuti nama di rancangan Niken dan Faris.
+- Pemeriksaan hapus dipindah dari `TransaksiManager` ke `ManagerMahasiswa.hapus` dan `ManagerAlat.hapus`. Keduanya bertanya
+  ke `ManagerTransaksi` lewat referensi yang disimpan sekali dengan `sambungkan_transaksi`. Rancangan Faris mengirim `trx_mgr`
+  sebagai parameter pada setiap pemanggilan hapus.
+- Proses pengembalian dipisah ke class `ManagerPengembalian`. Class ini tidak ada di rancangan individu mana pun; pemisahan ini
+  mengikuti pembagian tugas (pengembalian dikerjakan Niken) dan menjaga `ManagerTransaksi` tidak semakin besar.
+- `Logger` ditambahkan untuk Tantangan D.
+
+## 4. Alasan memilih struktur class
 
 | Class | Tanggung jawab | Alasan |
 |---|---|---|
-| `Mahasiswa`, `Alat`, `Transaksi`, `DetailTransaksi` | menyimpan data, memvalidasi satu baris file (`dari_baris`), dan membuat baris file (`ke_baris`) | satu class per entitas; format file diketahui model, bukan manager atau menu |
+| `Mahasiswa`, `Alat`, `Transaksi`, `DetailTransaksi`, `Pemeliharaan` | menyimpan data satu baris, memeriksa isi baris (`dari_baris`), dan menyusun baris file (`ke_baris`) | format file cukup diketahui model; manager dan menu tidak perlu tahu urutan kolom |
 | `Transaksi` berisi list `DetailTransaksi` | satu transaksi memuat banyak alat | Aturan 3: jumlah dan jenis alat dinamis tanpa variabel terpisah |
-| `ManagerMahasiswa`, `ManagerAlat`, `ManagerTransaksi`, `ManagerPengembalian` | menyimpan data di dictionary, menerapkan aturan bisnis, memicu penyimpanan | aturan bisnis terpusat di satu tempat per entitas dan mudah diuji tanpa menu |
-| `FileManager` | satu-satunya tempat `open()`, `with`, dan `try-except` | kode baca/tulis tidak berulang; mengganti penyimpanan hanya menyentuh `FileManager` dan `muat`/`simpan` di manager |
-| `Logger` | menulis `log.txt` dengan mode append | Tantangan D dipisah agar kegagalan log tidak menggagalkan operasi |
-| `AplikasiPeminjaman` (`menu.py`) | tampilan dan alur input | tanpa logika bisnis; menampilkan `ValueError` sebagai `[DITOLAK]` |
-| `validasi.py`, `konstanta.py` | fungsi validasi dan nilai tetap | tidak ada string status, kondisi, atau aturan yang ditulis berulang |
+| `ManagerDasar` | pola `muat`, `simpan`, `isi_file`, dan `semua` yang sama untuk mahasiswa dan alat | sebelumnya kode ini ditulis dua kali di `ManagerMahasiswa` dan `ManagerAlat` |
+| `ManagerMahasiswa`, `ManagerAlat`, `ManagerTransaksi`, `ManagerPengembalian`, `ManagerPemeliharaan` | menyimpan data di dictionary, menjalankan aturan bisnis, dan memicu penyimpanan | aturan bisnis berada di satu tempat per entitas dan bisa diuji tanpa menu |
+| `ManagerStatistik`, `ManagerLaporan` | menghitung statistik dan menyusun laporan dari data di memori | hanya membaca data, jadi tidak mengubah file data |
+| `FileManager` | satu-satunya tempat `open()`, `with`, dan `try-except`; karantina baris bermasalah; penulisan beberapa file sekaligus | kode baca/tulis tidak berulang, dan bila penyimpanan diganti database cukup bagian ini dan `muat`/`simpan` di manager yang berubah |
+| `Logger` | menulis `log.txt` dengan mode append | kegagalan menulis log tidak menggagalkan operasi utama |
+| `AplikasiPeminjaman` (`menu.py`) | tampilan menu dan alur input | tidak berisi aturan bisnis; penolakan dari manager (`ValueError`) ditampilkan sebagai `[DITOLAK]` |
+| `validasi.py`, `konstanta.py` | fungsi validasi dan nilai tetap | string status, kondisi, dan batas aturan tidak ditulis berulang |
 
-Dictionary dipakai dengan kunci NIM, kode alat, dan ID transaksi: pencarian O(1) dan duplikat langsung terdeteksi
-(Aturan 8). List dipakai untuk `daftar_detail` karena urutan alat dipertahankan.
+Dictionary dipakai dengan kunci NIM, kode alat, ID transaksi, dan ID pemeliharaan. Pencarian berdasarkan kunci tidak perlu
+memindai semua data, dan kunci ganda langsung ketahuan (Aturan 8). List dipakai untuk `daftar_detail` karena urutan alat dalam
+satu transaksi perlu dipertahankan.
 
-## 4. Alasan memilih format text file dan pemisah
+## 5. Alasan memilih format text file dan pemisah
 
-- Satu baris satu data dengan pemisah `|`: mudah diurai dengan `split()` dan `join()` (soal melarang `json`, `csv`,
-  dan `pickle`), dan `|` jarang muncul di nama atau kategori. Nilai yang mengandung `|` atau baris baru ditolak.
-- Nilai kosong ditulis `-` agar jumlah kolom selalu tetap, sehingga baris yang kolomnya tidak sesuai mudah dikenali.
-- `detail_transaksi.txt` terpisah dari `transaksi.txt`: tiap alat punya baris sendiri, sehingga jumlah alat dinamis
-  dan pengembalian sebagian (status, kondisi, tanggal per alat) tercatat tanpa mengubah struktur file.
-- Tanggal `YYYY-MM-DD`: mudah divalidasi dan dibandingkan sebagai teks.
-- Penulisan ulang file memakai file `.tmp` lalu `os.replace`, sehingga kegagalan di tengah penulisan tidak merusak
-  file lama.
+- Satu baris untuk satu data, dengan pemisah `|`. Formatnya mudah diurai dengan `split()` dan `join()` (soal melarang `json`,
+  `csv`, dan `pickle`), dan `|` hampir tidak pernah muncul di nama atau kategori. Input yang mengandung `|` atau baris baru ditolak.
+- Kolom kosong ditulis `-` agar jumlah kolom selalu tetap, sehingga baris yang kolomnya kurang atau lebih mudah dikenali.
+- `detail_transaksi.txt` dipisah dari `transaksi.txt`. Setiap alat punya baris sendiri, jadi jumlah alat bebas dan status,
+  kondisi, serta tanggal kembali tercatat per alat.
+- Tanggal ditulis `YYYY-MM-DD` dan bentuk lain (misalnya `2026-11-2`) ditolak, sehingga tanggal bisa dibandingkan dan diurutkan.
+- Penulisan memakai file sementara `.tmp` lalu `os.replace`. Bila satu operasi menyimpan beberapa file, semua file sementara
+  ditulis dulu dan baru menggantikan file lama setelah semuanya berhasil.
+- Baris yang dilewati saat memuat dipindahkan ke `data/karantina/` dengan format yang sama, sehingga bisa diperbaiki lalu
+  dikembalikan ke file asalnya.
 
-## 5. Alternatif yang tidak dipilih
+## 6. Alternatif yang sempat dipertimbangkan tetapi tidak dipilih
 
-| Alternatif | Alasan tidak dipilih |
-|---|---|
-| Database, `json`, `csv`, `pickle`, `shelve` | dilarang oleh soal |
-| Daftar alat dalam satu kolom di `transaksi.txt` | sulit diurai, pengembalian per alat tidak tercatat rapi |
-| Menambah baris saja (append) untuk semua perubahan | edit dan hapus tidak dapat dilakukan; hanya `log.txt` memakai append |
-| Satu class besar yang memegang semua data dan aturan | tanggung jawab bercampur dan sulit diuji |
-| `status_aktif` sebagai penanda manual yang dapat diedit dan memblokir peminjaman | dapat bertentangan dengan transaksi yang sebenarnya (Aturan 7), dan pemblokiran tidak diminta aturan mana pun |
+| Alternatif | Asal | Alasan tidak dipilih |
+|---|---|---|
+| Satu class service yang memegang semua data dan aturan | rancangan Niken | tanggung jawab bercampur dalam satu class, sulit dibagi per anggota dan sulit diuji per bagian |
+| Nama `from_line` dan `to_line` | rancangan Faris | kelompok memakai nama berbahasa Indonesia agar seragam dengan nama lain di program |
+| Mengirim `trx_mgr` sebagai parameter setiap kali menghapus | rancangan Faris | referensi cukup disimpan sekali, sehingga pemanggil hapus tidak perlu tahu `ManagerTransaksi` |
+| Daftar alat ditulis dalam satu kolom di `transaksi.txt` | diskusi format file | sulit diurai, dan pengembalian per alat tidak tercatat rapi |
+| Semua perubahan hanya ditambahkan di akhir file (append) | diskusi format file | edit dan hapus tidak bisa dilakukan; hanya `log.txt` yang memakai append |
+| Database, `json`, `csv`, `pickle`, `shelve` | | dilarang oleh soal |
+| `status_aktif` mahasiswa diisi manual dan memblokir peminjaman | | bisa bertentangan dengan transaksi yang sebenarnya (Aturan 7), dan tidak ada aturan yang meminta pemblokiran |
+| Baris rusak dibuang saat file ditulis ulang | perilaku program sebelum review | data hilang permanen, misalnya semua transaksi terhapus ketika `mahasiswa.txt` dihapus |
+| Baris rusak dibiarkan di file utama | dipertimbangkan saat memperbaiki masalah di atas | file utama tidak lagi sama dengan data di program (Aturan 7) |
 
-**[ISI TIM]** Tambahkan alternatif lain yang benar-benar dibahas saat diskusi kelompok.
+## 7. Perubahan dari UML Tahap 1 ke program akhir
 
-## 6. Keputusan yang diambil setelah analisis kode
+| UML final Tahap 1 | Program akhir | Alasan |
+|---|---|---|
+| `MenuApp` | `AplikasiPeminjaman` di `menu.py`, dengan method per fitur | menu wajib dan menu tantangan perlu method sendiri agar mudah diuji |
+| `MahasiswaManager`, `AlatManager`, `TransaksiManager` | `ManagerMahasiswa`, `ManagerAlat`, `ManagerTransaksi`; dua yang pertama mewarisi `ManagerDasar` | penamaan diseragamkan dan kode muat/simpan yang sama dipindah ke class dasar |
+| `FileHandler` (3 method) | `FileManager` dan `FileManagerError` | ditambah pembuatan file otomatis, peringatan, karantina, penulisan beberapa file sekaligus, dan mode append |
+| `TransaksiManager.proses_pengembalian` | `ManagerPengembalian.kembalikan` | pengembalian dipisah dari pembuatan transaksi |
+| `TransaksiManager.hapus_mahasiswa`, `hapus_alat` | `ManagerMahasiswa.hapus`, `ManagerAlat.hapus` | setiap manager menghapus datanya sendiri dan bertanya ke `ManagerTransaksi` |
+| konstanta `FILE`, `MAKS_TRANSAKSI_AKTIF`, `MAKS_HARI` di dalam class | `konstanta.py` | nilai tetap dipakai beberapa modul |
+| `get(nim)`, `get(kode)` | `ambil()` (menolak bila tidak ada) dan `cari_berdasarkan_nim()`/`cari_berdasarkan_kode()` (boleh `None`) | pemanggil bisa memilih perilaku saat data tidak ditemukan |
+| `Alat.tersedia()`, `terima_kembali()` | `Alat.status_dari_kondisi()`, `tandai_dikembalikan()`, `selesai_diperbaiki()` | aturan kondisi ke status (Aturan 5) berada di model |
+| `DetailTransaksi.ke_baris(id_transaksi)` | `DetailTransaksi` menyimpan `id_transaksi` dan `ke_baris()` tanpa parameter | satu baris detail bisa dibaca dan ditulis tanpa objek transaksinya |
+| atribut tanggal bertipe `date` | tanggal disimpan sebagai teks `YYYY-MM-DD` dan diperiksa dengan `validasi.validasi_tanggal` | sama dengan isi file, sehingga tidak perlu konversi saat menulis |
+| tidak ada | `Logger`, `ManagerStatistik`, `ManagerPemeliharaan`, `Pemeliharaan`, `ManagerLaporan` | Tantangan D, B, C, dan F |
+
+## 8. Keputusan setelah analisis kode dan review internal
 
 | Keputusan | Alasan | Catatan |
 |---|---|---|
-| Alat atau mahasiswa yang tercatat di transaksi mana pun tidak dapat dihapus | Aturan 8: transaksi harus merujuk NIM dan kode alat yang ada; sebelumnya penghapusan membuat transaksi selesai terbuang saat data dimuat ulang | Lebih ketat dari teks Aturan 6 (hanya transaksi aktif). Alternatif: soft delete |
-| `status_aktif` mahasiswa diatur otomatis: `aktif` selama punya transaksi aktif, selain itu `tidak aktif` | Soal menyebut "status aktif peminjaman", dan contoh pada soal cocok dengan bacaan ini (M001 punya pinjaman aktif berstatus `aktif`, M002 tidak punya berstatus `tidak aktif`). Aturan 7: nilai di file harus sama dengan keadaan sebenarnya | **Tafsiran, belum dikonfirmasi ke asisten.** Mengganti default `aktif` pada model `Mahasiswa`; status tidak dapat diedit manual dan tidak memblokir peminjaman |
-| Kondisi dan status alat dari file yang bertentangan diperbaiki saat dimuat, dengan peringatan | Aturan 5: alat rusak tidak boleh tersedia | `rusak berat` dengan status `tersedia` menjadi `tidak tersedia` |
-| `batas_kembali` dari file harus 0 sampai 7 hari setelah `tgl_pinjam` | batas pengembalian maksimal 7 hari | baris di luar rentang dilewati dengan peringatan |
-| Keterlambatan dihitung, ditampilkan, dan dicatat di log | keterlambatan pengembalian termasuk masalah yang disebut soal | belum ada denda |
-| Kondisi alat dipulihkan bila penyimpanan pengembalian gagal | Aturan 7: memori dan file harus sama | `simpan_semua` memuat ulang data, lalu kondisi alat dikembalikan |
+| Baris yang dilewati saat memuat dipindahkan ke `data/karantina/`, lalu file utama langsung ditulis ulang | sebelumnya baris itu hilang permanen saat file ditulis ulang; menghapus `mahasiswa.txt` membuat semua transaksi terhapus | peringatan juga dicatat ke `log.txt` |
+| Status alat hanya dikoreksi ke arah aman: program tidak pernah membuat alat menjadi `tersedia` sendiri | sebelumnya alat yang transaksinya rusak di file berubah menjadi `tersedia` dan bisa dipinjam orang lain padahal masih dipegang peminjam (Aturan 1) | alat yang ditahan dilepas petugas lewat menu Edit alat |
+| ID transaksi dan pemeliharaan di karantina tidak dipakai lagi untuk data baru | sebelumnya transaksi baru bisa mendapat ID yang sama dengan transaksi lama yang dilewati (Aturan 8) | |
+| Operasi yang mengubah beberapa file ditulis sekaligus lewat `tulis_banyak` | sebelumnya kegagalan di tengah penyimpanan bisa meninggalkan baris transaksi tanpa detail (Aturan 7) | |
+| Batas 7 hari hanya diperiksa saat transaksi dibuat; saat memuat cukup diperiksa bahwa `batas_kembali` tidak sebelum `tgl_pinjam` | bila aturan berubah, transaksi lama tetap bisa dimuat | |
+| Tanggal yang tidak berformat `YYYY-MM-DD` persis ditolak | `2026-11-2` sebelumnya lolos | |
+| Alat atau mahasiswa yang tercatat di transaksi mana pun (juga alat di data pemeliharaan) tidak dapat dihapus | Aturan 8: rujukan di file transaksi harus tetap ada | lebih ketat dari teks Aturan 6 yang hanya menyebut transaksi aktif; ini tafsiran kelompok |
+| `status_aktif` mahasiswa diatur otomatis mengikuti transaksi aktif | soal menyebut "status aktif peminjaman", dan contoh pada soal cocok dengan tafsiran ini | tafsiran kelompok; status ini tidak memblokir peminjaman |
+| Daftar yang panjang ditampilkan 20 baris per halaman | menu tetap bisa dipakai bila data mencapai ribuan baris | |

@@ -1,0 +1,11 @@
+LAPORAN ALAT YANG SEDANG DIPINJAM
+Dibuat: 2026-11-25 13:46
+======================================================================
+
+No  Kode  Nama Alat           Peminjam            Transaksi  Batas Kembali  Keterangan
+---------------------------------------------------------------------------------------------
+1   A001  Multimeter Digital  M001 Andi Pratama   T001       2026-11-09     terlambat 16 hari
+2   A002  Osiloskop           M001 Andi Pratama   T001       2026-11-09     terlambat 16 hari
+3   A005  Arduino Uno         M003 Citra Lestari  T003       2026-11-10     terlambat 15 hari
+---------------------------------------------------------------------------------------------
+Jumlah: 3 alat
